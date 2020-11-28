@@ -9,4 +9,5 @@
 
 *.so
 compile_flags.txt
+ext/fast_statistics/Makefile
 
