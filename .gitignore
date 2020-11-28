@@ -6,3 +6,7 @@
 /pkg/
 /spec/reports/
 /tmp/
+
+*.so
+compile_flags.txt
+

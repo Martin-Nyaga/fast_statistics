@@ -1,6 +1,5 @@
 require "fast_statistics/version"
+require "fast_statistics/fast_statistics"
 
 module FastStatistics
-  class Error < StandardError; end
-  # Your code goes here...
 end
