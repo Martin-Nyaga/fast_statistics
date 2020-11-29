@@ -2,7 +2,6 @@
 
 require 'fast_statistics'
 
-THRESHOLD = 10e-9
 describe FastStatistics do
   let(:data) do
     [
@@ -23,24 +22,30 @@ describe FastStatistics do
   end
 
   context "#descriptive_statistics" do
-    it "calculates descriptive statistics through SIMD if available" do
-      variable_stats = FastStatistics.descriptive_statistics(data)
-      variable_stats.each_with_index do |stats, index|
-        expected_stats[index].each do |(k, v)|
-          expect(stats[k]).to be_within(THRESHOLD).of(v)
-        end
-      end
+    it "calculates descriptive statistics" do
+      stats = FastStatistics.descriptive_statistics(data)
+      expect(stats).to have_same_statistics_values_as(expected_stats)
+    end
+  end
+
+  context "#descriptive_statistics_packed_float64" do
+    it "calculates descriptive statistics" do
+      stats = FastStatistics.descriptive_statistics_packed_float64(data)
+      expect(stats).to have_same_statistics_values_as(expected_stats)
+    end
+  end
+
+  context "#descriptive_statistics_packed_float32" do
+    it "calculates descriptive statistics" do
+      stats = FastStatistics.descriptive_statistics_packed_float32(data)
+      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(10e-6)
     end
   end
 
   context "#descriptive_statistics_unpacked" do
     it "calculates descriptive statistics with the 'unpacked' algorithm" do
-      variable_stats = FastStatistics.descriptive_statistics_unpacked(data)
-      variable_stats.each_with_index do |stats, index|
-        expected_stats[index].each do |(k, v)|
-          expect(stats[k]).to be_within(THRESHOLD).of(v)
-        end
-      end
+      stats = FastStatistics.descriptive_statistics_unpacked(data)
+      expect(stats).to have_same_statistics_values_as(expected_stats)
     end
   end
 

@@ -1,6 +1,9 @@
 require "mkmf"
 
+# Enable debug compile using DEBUG env var
 CONFIG["debugflags"] = "-g" if ENV["DEBUG"]
+
+# Disable warnings
 [
   / -Wdeclaration-after-statement/,
   / -Wno-self-assign/,
