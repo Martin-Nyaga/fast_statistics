@@ -32,11 +32,11 @@ VALUE descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
   VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
 
   for (int variable_index = 0; variable_index < cols; variable_index += simd_pack_size) {
-    // Type check the array passed in is properly 2d
-    for (int simd_slot_index = 0; simd_slot_index < simd_pack_size; simd_slot_index++) {
-      VALUE col = rb_ary_entry(arrays, variable_index + simd_slot_index);
-      Check_Type(col, T_ARRAY);
-    }
+    // Pack values in opposite order to maintain expected ruby order
+    VALUE cols[2] = {
+      rb_ary_entry(arrays, variable_index + 1),
+      rb_ary_entry(arrays, variable_index + 0),
+    };
 
     __m128d sums = _mm_setzero_pd();
     __m128d means = _mm_setzero_pd();
@@ -49,8 +49,8 @@ VALUE descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
     for (int row_index = 0; row_index < rows; row_index++) {
       // Pack values in opposite order to maintain expected ruby order
       __m128d packed = _mm_set_pd(
-        NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 1), row_index)),
-        NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 0), row_index))
+        NUM2DBL(rb_ary_entry(cols[0], row_index)),
+        NUM2DBL(rb_ary_entry(cols[1], row_index))
       );
 
       sums = _mm_add_pd(sums, packed);
@@ -99,7 +99,7 @@ VALUE descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
 {
   Check_Type(arrays, T_ARRAY);
 
-  int cols =  rb_array_len(arrays);
+  int cols = rb_array_len(arrays);
   int rows = rb_array_len(rb_ary_entry(arrays, 0));
   int simd_pack_size = 4;
 
@@ -111,11 +111,13 @@ VALUE descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
   VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
 
   for (int variable_index = 0; variable_index < cols; variable_index += simd_pack_size) {
-    // Type check the array passed in is properly 2d
-    for (int simd_slot_index = 0; simd_slot_index < simd_pack_size; simd_slot_index++) {
-      VALUE col = rb_ary_entry(arrays, variable_index + simd_slot_index);
-      Check_Type(col, T_ARRAY);
-    }
+    // Pack values in opposite order to maintain expected ruby order
+    VALUE cols[4] = {
+      rb_ary_entry(arrays, variable_index + 3),
+      rb_ary_entry(arrays, variable_index + 2),
+      rb_ary_entry(arrays, variable_index + 1),
+      rb_ary_entry(arrays, variable_index + 0),
+    };
 
     __m128 sums = _mm_setzero_ps();
     __m128 means = _mm_setzero_ps();
@@ -126,12 +128,11 @@ VALUE descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
     __m128 lengths = _mm_set_ps1((float) rows);
 
     for (int row_index = 0; row_index < rows; row_index++) {
-      // Pack values in opposite order to maintain expected ruby order
       __m128 packed = _mm_set_ps(
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 3), row_index)),
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 2), row_index)),
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 1), row_index)),
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 0), row_index))
+        (float)NUM2DBL(rb_ary_entry(cols[0], row_index)),
+        (float)NUM2DBL(rb_ary_entry(cols[1], row_index)),
+        (float)NUM2DBL(rb_ary_entry(cols[2], row_index)),
+        (float)NUM2DBL(rb_ary_entry(cols[3], row_index))
       );
 
       sums = _mm_add_ps(sums, packed);
@@ -141,12 +142,11 @@ VALUE descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
     means = _mm_div_ps(sums, lengths);
 
     for (int row_index = 0; row_index < rows; row_index++) {
-      // Pack values in opposite order to maintain expected ruby order
       __m128 packed = _mm_set_ps(
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 3), row_index)),
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 2), row_index)),
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 1), row_index)),
-        (float)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, variable_index + 0), row_index))
+        (float)NUM2DBL(rb_ary_entry(cols[0], row_index)),
+        (float)NUM2DBL(rb_ary_entry(cols[1], row_index)),
+        (float)NUM2DBL(rb_ary_entry(cols[2], row_index)),
+        (float)NUM2DBL(rb_ary_entry(cols[3], row_index))
       );
 
       __m128 deviation = _mm_sub_ps(packed, means);
@@ -176,7 +176,6 @@ VALUE descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
   }
 
   return a_results;
-
 }
 
 VALUE simd_enabled(VALUE self)
@@ -189,7 +188,7 @@ VALUE descriptive_statistics(VALUE self, VALUE arrays)
 {
   Check_Type(arrays, T_ARRAY);
 
-  int cols =  rb_array_len(arrays);
+  int cols = rb_array_len(arrays);
   int rows = rb_array_len(rb_ary_entry(arrays, 0));
 
   VALUE a_results  = rb_ary_new();
@@ -199,15 +198,14 @@ VALUE descriptive_statistics(VALUE self, VALUE arrays)
   VALUE s_variance = ID2SYM(rb_intern("variance"));
   VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
 
-  for (int j = 0; j < cols; j++) {
-    VALUE col = rb_ary_entry(arrays, j);
+  for (int variable_index = 0; variable_index < cols; variable_index++) {
+    VALUE col = rb_ary_entry(arrays, variable_index);
     Check_Type(col, T_ARRAY);
     VALUE h_result = rb_hash_new();
 
     double sum = 0.0f;
     double min = FLT_MAX;
     double max = FLT_MIN;
-
 
     for (int i = 0; i < rows; i++) {
       VALUE value = rb_ary_entry(col, i);

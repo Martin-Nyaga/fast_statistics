@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'bundler/setup'
+require "bundler/setup"
 
-require 'fast_statistics'
-require 'benchmark/ips'
-require 'terminal-table'
-require 'descriptive_statistics'
-require 'ruby_native_statistics'
+require "fast_statistics"
+require "benchmark/ips"
+require "terminal-table"
+require "descriptive_statistics/safe"
+require "ruby_native_statistics"
 
-# Ruby Statisitics implementation for comparison
+# Custom Ruby Statisitics implementation for comparison
 module RubyStatistics
   def self.descriptive_statistics(data)
     data.map do |arr|
@@ -24,9 +24,9 @@ module RubyStatistics
 
       length = arr.length
       mean = sum / length
-      variance = arr.inject(0) { |var, x| var += ((x - mean)**2) / length }
+      variance = arr.inject(0) { |var, x| var += ((x - mean) ** 2) / length }
       standard_deviation = Math.sqrt(variance)
-      { mean: mean, min: min, max: max, variance: variance, standard_deviation: standard_deviation }
+      {mean: mean, min: min, max: max, variance: variance, standard_deviation: standard_deviation}
     end
   end
 end
@@ -35,11 +35,12 @@ module FastStatistics
   class Benchmark
     def tests
       [
-        ["Ruby"                          , :test_ruby],
-        ["Ruby (desc_stats)" , :test_ruby_descriptive_statistics],
-        ["Fast (unpacked)"     , :test_native],
-        ["Fast (float32)"      , :test_native_float32],
-        ["Fast (float64)"      , :test_native_float64]
+        ["Ruby (custom)", :test_ruby],
+        ["Ruby (desc_stats)", :test_ruby_descriptive_statistics],
+        ["Ruby (native_stats)", :test_ruby_native_statistics],
+        ["Fast (unpacked)", :test_native],
+        ["Fast (float32)", :test_native_float32],
+        ["Fast (float64)", :test_native_float64]
       ]
     end
 
@@ -47,18 +48,20 @@ module FastStatistics
       puts("Comparing calculated statistics with #{format_number(comparison_count)} values...")
 
       data = generate_data(comparison_count)
+
       test_results = tests.map do |(name, method)|
         results = send(method, data)
         print_results(name, results, precision)
         results
       end
 
-      if assert_values_within_delta(test_results, 10**-precision)
+      if assert_values_within_delta(test_results, 10 ** -precision)
         puts("Test passed, results are equal to #{precision} decimal places!")
         puts
       end
+
     rescue TestFailure => e
-      puts('Test results did not match!')
+      puts("Test results did not match!")
       exit(1)
     end
 
@@ -87,7 +90,14 @@ module FastStatistics
 
     def test_ruby_descriptive_statistics(data)
       data.map do |arr|
-        { mean: arr.mean, min: arr.min, max: arr.max, variance: arr.variance, standard_deviation: arr.standard_deviation }
+        stats = DescriptiveStatistics::Stats.new(arr)
+        {mean: stats.mean, min: stats.min, max: stats.max, variance: stats.variance, standard_deviation: stats.standard_deviation}
+      end
+    end
+
+    def test_ruby_native_statistics(data)
+      data.map do |arr|
+        {mean: arr.mean, min: arr.min, max: arr.max, variance: arr.varp, standard_deviation: arr.stdevp}
       end
     end
 
@@ -111,7 +121,7 @@ module FastStatistics
       headers = results[0].keys
       values = results.map { |r| r.values.map { |v| "%.#{precision}f" % v } }
       table = Terminal::Table.new(headings: headers, rows: values)
-      puts(title + ':')
+      puts(title + ":")
       puts(table)
     end
 
@@ -135,7 +145,7 @@ module FastStatistics
     end
 
     def format_number(number)
-      number.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
+      number.to_s.reverse.gsub(/(\d{3})(?=\d)/, "\\1,").reverse
     end
   end
 end

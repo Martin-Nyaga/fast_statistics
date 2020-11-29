@@ -1,8 +1,6 @@
 # FastStatistics
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/fast_statistics`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+Fast computation of descriptive statistics in ruby using native code and SIMD.
 
 ## Installation
 

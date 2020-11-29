@@ -7,6 +7,8 @@
 /spec/reports/
 /tmp/
 
+Gemfile.lock
+
 *.so
 compile_flags.txt
 ext/fast_statistics/Makefile
