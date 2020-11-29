@@ -11,7 +11,7 @@ end
 # Rspec
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec, [:spec] => [:compile])
+  RSpec::Core::RakeTask.new(:spec, [:spec] => [:clean, :compile])
 rescue LoadError
 end
 

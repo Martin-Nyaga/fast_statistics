@@ -13,6 +13,15 @@ CONFIG["debugflags"] = "-g" if ENV["DEBUG"]
   CONFIG["warnflags"].slice!(flag)
 end
 
-have_header("xmmintrin.h")
+has_xmmintrin = have_header("xmmintrin.h")
+has_immintrin = have_header("immintrin.h")
+
+if has_immintrin
+  append_cflags("-mavx")
+end
+
+if has_xmmintrin || has_immintrin
+  $defs << "-DHAVE_SIMD_INTRINSICS"
+end
 
 create_makefile("fast_statistics/fast_statistics")

@@ -39,15 +39,16 @@ module FastStatistics
         ["Ruby (desc_stats)", :test_ruby_descriptive_statistics],
         ["Ruby (native_stats)", :test_ruby_native_statistics],
         ["Fast (unpacked)", :test_native],
-        ["Fast (float32)", :test_native_float32],
-        ["Fast (float64)", :test_native_float64]
+        ["Fast (128_float32)", :test_native128_float32],
+        ["Fast (128_float64)", :test_native128_float64],
+        ["Fast (256_float32)", :test_native256_float32],
+        ["Fast (256_float64)", :test_native256_float64],
       ]
     end
 
     def compare_results!(comparison_count = 10, precision = 6)
-      puts("Comparing calculated statistics with #{format_number(comparison_count)} values...")
-
       data = generate_data(comparison_count)
+      puts("Comparing calculated statistics with #{format_number(comparison_count)} values for #{data.length} variables...")
 
       test_results = tests.map do |(name, method)|
         results = send(method, data)
@@ -66,8 +67,8 @@ module FastStatistics
     end
 
     def benchmark!(benchmark_count = 100_000)
-      puts("Benchmarking with #{format_number(benchmark_count)} values...")
       data = generate_data(benchmark_count)
+      puts("Benchmarking with #{format_number(benchmark_count)} values for #{data.length} variables...")
 
       ::Benchmark.ips do |x|
         x.config(warmup: 5)
@@ -105,16 +106,24 @@ module FastStatistics
       FastStatistics.descriptive_statistics_unpacked(data)
     end
 
-    def test_native_float32(data)
-      FastStatistics.descriptive_statistics_packed_float32(data)
+    def test_native128_float32(data)
+      FastStatistics.descriptive_statistics_packed128_float32(data)
     end
 
-    def test_native_float64(data)
-      FastStatistics.descriptive_statistics_packed_float32(data)
+    def test_native128_float64(data)
+      FastStatistics.descriptive_statistics_packed128_float64(data)
     end
 
-    def generate_data(length)
-      data = (0..3).map { (0..(length - 1)).map { rand } }
+    def test_native256_float32(data)
+      FastStatistics.descriptive_statistics_packed256_float32(data)
+    end
+
+    def test_native256_float64(data)
+      FastStatistics.descriptive_statistics_packed256_float64(data)
+    end
+
+    def generate_data(length, variables = 8)
+      data = (0..(variables - 1)).map { (0..(length - 1)).map { rand } }
     end
 
     def print_results(title, results, precision)
