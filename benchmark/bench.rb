@@ -3,7 +3,7 @@
 require "bundler/setup"
 
 require "fast_statistics"
-require "benchmark/ips"
+require "benchmark"
 require "terminal-table"
 require "descriptive_statistics/safe"
 require "ruby_native_statistics"
@@ -12,22 +12,36 @@ require "ruby_native_statistics"
 module RubyStatistics
   def self.descriptive_statistics(data)
     data.map do |arr|
-      min = Float::INFINITY
-      max = -Float::INFINITY
-      sum = 0
+      arr.sort!
 
-      arr.each do |x|
-        min = x if x < min
-        max = x if x > max
-        sum += x
-      end
-
+      min = arr.first
+      max = arr.last
       length = arr.length
+      median = self.percentile(50, arr, length)
+      q1 = self.percentile(25, arr, length)
+      q3 = self.percentile(75, arr, length)
+      sum = arr.inject(0) { |sum, x| sum + x}
+
       mean = sum / length
       variance = arr.inject(0) { |var, x| var += ((x - mean) ** 2) / length }
       standard_deviation = Math.sqrt(variance)
-      {mean: mean, min: min, max: max, variance: variance, standard_deviation: standard_deviation}
+      {
+        mean: mean,
+        min: min,
+        max: max,
+        median: median,
+        q1: q1,
+        q3: q3,
+        standard_deviation: standard_deviation
+      }
     end
+  end
+
+  def self.percentile(p, arr, len)
+    return values.last if p == 100
+    rank = p / 100.0 * (len - 1)
+    lower, upper = arr[rank.floor, 2]
+    lower + (upper - lower) * (rank - rank.floor)
   end
 end
 
@@ -35,8 +49,8 @@ module FastStatistics
   class Benchmark
     def tests
       [
-        ["Ruby (custom)", :test_ruby],
         ["Ruby (desc_stats)", :test_ruby_descriptive_statistics],
+        ["Ruby (custom)", :test_ruby],
         ["Ruby (native_stats)", :test_ruby_native_statistics],
         ["Fast (unpacked)", :test_native],
         ["Fast (float32)", :test_native_float32],
@@ -67,16 +81,12 @@ module FastStatistics
       data = generate_data(benchmark_count, variables_count)
       puts("Benchmarking with #{format_number(benchmark_count)} values for #{data.length} variables...")
 
-      ::Benchmark.ips do |x|
-        x.config(warmup: 5)
-
+      ::Benchmark.bmbm do |x|
         tests.each do |(name, method)|
           x.report(name) do
             send(method, data)
           end
         end
-
-        x.compare!
       end
     end
 
@@ -89,13 +99,29 @@ module FastStatistics
     def test_ruby_descriptive_statistics(data)
       data.map do |arr|
         stats = DescriptiveStatistics::Stats.new(arr)
-        {mean: stats.mean, min: stats.min, max: stats.max, variance: stats.variance, standard_deviation: stats.standard_deviation}
+        {
+          mean: stats.mean,
+          min: stats.min,
+          max: stats.max,
+          median: stats.median,
+          q1: stats.percentile(25),
+          q3: stats.percentile(75),
+          standard_deviation: stats.standard_deviation
+        }
       end
     end
 
     def test_ruby_native_statistics(data)
       data.map do |arr|
-        {mean: arr.mean, min: arr.min, max: arr.max, variance: arr.varp, standard_deviation: arr.stdevp}
+        {
+          mean: arr.mean,
+          min: arr.min,
+          max: arr.max,
+          median: arr.median,
+          q1: arr.percentile(0.25),
+          q3: arr.percentile(0.75),
+          standard_deviation: arr.stdevp
+        }
       end
     end
 
@@ -127,7 +153,7 @@ module FastStatistics
     end
 
     def assert_values_within_delta(values, delta)
-      values.each_cons(2) do |expected, actual|
+      values.combination(2).each do |expected, actual|
         unless expected.length == actual.length
           raise TestFailure, "Results don't match!"
         end

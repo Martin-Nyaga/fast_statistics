@@ -20,7 +20,11 @@ RSpec::Matchers.define :have_same_statistics_values_as do |expected|
 
     expected.each_with_index do |stats, index|
       actual[index].each do |(k, v)|
-        expect(v).to be_within(threshold).of(stats[k])
+        @index = index
+        @key = k
+        @expected_value = stats[k]
+        @actual_value = v
+        expect(v).to be_within(threshold).of(@expected_value)
       end
     end
   end
@@ -39,11 +43,14 @@ RSpec::Matchers.define :have_same_statistics_values_as do |expected|
 
   failure_message do |actual|
     <<~MSG
-      expected
+      For #{@key} at index #{@index}
+      expected: #{@actual_value} to be within #{threshold} of #{@expected_value}
+
+      expected array:
       #{expected.pretty_inspect}
-      to have same statistics values as
+
+      actual array:
       #{actual.pretty_inspect}
-      within #{threshold}
     MSG
   end
 end

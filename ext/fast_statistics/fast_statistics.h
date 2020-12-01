@@ -1,4 +1,3 @@
-#include<stdio.h>
 #include<float.h>
 #include<ruby.h>
 
