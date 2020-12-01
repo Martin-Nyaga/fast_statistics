@@ -26,9 +26,11 @@ require 'pp'
 
 RSpec::Matchers.define :have_same_statistics_values_as do |expected|
   match do |actual|
-    actual.each_with_index do |stats, index|
-      expected[index].each do |(k, v)|
-        expect(stats[k]).to be_within(threshold).of(v)
+    expect(expected.length).to eq(actual.length)
+
+    expected.each_with_index do |stats, index|
+      actual[index].each do |(k, v)|
+        expect(v).to be_within(threshold).of(stats[k])
       end
     end
   end

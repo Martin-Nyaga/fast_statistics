@@ -1,7 +1,11 @@
 require "mkmf"
 
 # Enable debug compile using DEBUG env var
-CONFIG["debugflags"] = "-g" if ENV["DEBUG"]
+if ENV["DEBUG"]
+  puts "Compiling in debug mode..."
+  CONFIG["debugflags"] = "-g"
+  CONFIG["optflags"] = "-O0"
+end
 
 # Disable warnings
 [

@@ -52,7 +52,6 @@ module FastStatistics
 
       test_results = tests.map do |(name, method)|
         results = send(method, data)
-        print_results(name, results, precision)
         results
       end
 
@@ -66,8 +65,8 @@ module FastStatistics
       exit(1)
     end
 
-    def benchmark!(benchmark_count = 100_000)
-      data = generate_data(benchmark_count)
+    def benchmark!(benchmark_count = 100_000, variables_count = 12)
+      data = generate_data(benchmark_count, variables_count)
       puts("Benchmarking with #{format_number(benchmark_count)} values for #{data.length} variables...")
 
       ::Benchmark.ips do |x|
@@ -139,9 +138,12 @@ module FastStatistics
 
     def assert_values_within_delta(values, delta)
       values.each_cons(2) do |expected, actual|
+        unless expected.length == actual.length
+          raise TestFailure, "Results don't match!"
+        end
+
         expected.each_with_index do |result, i|
           actual_result = actual[i]
-
           result.each do |k, _v|
             unless (actual_result[k] - result[k]).abs < delta
               raise TestFailure, "Results don't match!"
