@@ -39,10 +39,8 @@ module FastStatistics
         ["Ruby (desc_stats)", :test_ruby_descriptive_statistics],
         ["Ruby (native_stats)", :test_ruby_native_statistics],
         ["Fast (unpacked)", :test_native],
-        ["Fast (128_float32)", :test_native128_float32],
-        ["Fast (128_float64)", :test_native128_float64],
-        ["Fast (256_float32)", :test_native256_float32],
-        ["Fast (256_float64)", :test_native256_float64],
+        ["Fast (float32)", :test_native_float32],
+        ["Fast (float64)", :test_native_float64],
       ]
     end
 
@@ -105,20 +103,12 @@ module FastStatistics
       FastStatistics.descriptive_statistics_unpacked(data)
     end
 
-    def test_native128_float32(data)
-      FastStatistics.descriptive_statistics_packed128_float32(data)
+    def test_native_float32(data)
+      FastStatistics.descriptive_statistics_packed_float32(data)
     end
 
-    def test_native128_float64(data)
-      FastStatistics.descriptive_statistics_packed128_float64(data)
-    end
-
-    def test_native256_float32(data)
-      FastStatistics.descriptive_statistics_packed256_float32(data)
-    end
-
-    def test_native256_float64(data)
-      FastStatistics.descriptive_statistics_packed256_float64(data)
+    def test_native_float64(data)
+      FastStatistics.descriptive_statistics_packed_float64(data)
     end
 
     def generate_data(length, variables = 8)

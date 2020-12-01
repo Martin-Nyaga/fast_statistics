@@ -36,70 +36,36 @@ describe FastStatistics do
     end
   end
 
-  context "#descriptive_statistics_packed128_float64" do
+  context "#descriptive_statistics_packed_float64" do
     it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics_packed128_float64(data)
+      stats = FastStatistics.descriptive_statistics_packed_float64(data)
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
 
     it "works with 1 variable" do
-      stats = FastStatistics.descriptive_statistics_packed128_float64(data.first(1))
+      stats = FastStatistics.descriptive_statistics_packed_float64(data.first(1))
       expect(stats).to have_same_statistics_values_as(expected_stats.first(1))
     end
 
     it "works with an odd number of variables" do
-      stats = FastStatistics.descriptive_statistics_packed128_float64(data.first(5))
+      stats = FastStatistics.descriptive_statistics_packed_float64(data.first(5))
       expect(stats).to have_same_statistics_values_as(expected_stats.first(5))
     end
   end
 
-  context "#descriptive_statistics_packed128_float32" do
+  context "#descriptive_statistics_packed_float32" do
     it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics_packed128_float32(data)
+      stats = FastStatistics.descriptive_statistics_packed_float32(data)
       expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(10e-6)
     end
 
     it "works with 1 variable" do
-      stats = FastStatistics.descriptive_statistics_packed128_float32(data.first(1))
+      stats = FastStatistics.descriptive_statistics_packed_float32(data.first(1))
       expect(stats).to have_same_statistics_values_as(expected_stats.first(1)).within_threshold(10e-6)
     end
 
     it "works with an odd number of variables" do
-      stats = FastStatistics.descriptive_statistics_packed128_float32(data.first(5))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(5)).within_threshold(10e-6)
-    end
-  end
-
-  context "#descriptive_statistics_packed256_float64" do
-    it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics_packed256_float64(data)
-      expect(stats).to have_same_statistics_values_as(expected_stats)
-    end
-
-    it "works with 1 variable" do
-      stats = FastStatistics.descriptive_statistics_packed256_float64(data.first(1))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(1))
-    end
-
-    it "works with an odd number of variables" do
-      stats = FastStatistics.descriptive_statistics_packed256_float64(data.first(5))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(5))
-    end
-  end
-
-  context "#descriptive_statistics_packed256_float32" do
-    it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics_packed256_float32(data)
-      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(10e-6)
-    end
-
-    it "works with 1 variable" do
-      stats = FastStatistics.descriptive_statistics_packed256_float32(data.first(1))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(1)).within_threshold(10e-6)
-    end
-
-    it "works with an odd number of variables" do
-      stats = FastStatistics.descriptive_statistics_packed256_float32(data.first(5))
+      stats = FastStatistics.descriptive_statistics_packed_float32(data.first(5))
       expect(stats).to have_same_statistics_values_as(expected_stats.first(5)).within_threshold(10e-6)
     end
   end

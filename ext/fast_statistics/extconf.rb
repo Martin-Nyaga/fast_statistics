@@ -17,15 +17,5 @@ end
   CONFIG["warnflags"].slice!(flag)
 end
 
-has_xmmintrin = have_header("xmmintrin.h")
-has_immintrin = have_header("immintrin.h")
-
-if has_immintrin
-  append_cflags("-mavx")
-end
-
-if has_xmmintrin || has_immintrin
-  $defs << "-DHAVE_SIMD_INTRINSICS"
-end
-
+have_header("xmmintrin.h")
 create_makefile("fast_statistics/fast_statistics")
