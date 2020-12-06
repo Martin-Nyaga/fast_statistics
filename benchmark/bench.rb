@@ -4,9 +4,11 @@ require "bundler/setup"
 
 require "fast_statistics"
 require "benchmark"
+require "benchmark/ips"
 require "terminal-table"
 require "descriptive_statistics/safe"
 require "ruby_native_statistics"
+require "numo/narray"
 
 # Custom Ruby Statisitics implementation for comparison
 module RubyStatistics
@@ -37,10 +39,38 @@ module RubyStatistics
     end
   end
 
+  def self.descriptive_statistics_narray(data)
+    data.map do |arr|
+      narr = Numo::DFloat[arr]
+      narr.sort
+      min = narr[0]
+      length = arr.length
+      max = narr[length - 1]
+      median = self.percentile(50, narr, length)
+      q1 = self.percentile(25, narr, length)
+      q3 = self.percentile(75, narr, length)
+      sum = narr.sum
+      mean = sum / length
+      variance = 0
+      narr.each { |x| variance += ((x - mean) ** 2) / length }
+      standard_deviation = Math.sqrt(variance)
+      {
+        mean: mean,
+        min: min,
+        max: max,
+        median: median,
+        q1: q1,
+        q3: q3,
+        standard_deviation: standard_deviation
+      }
+    end
+  end
+
   def self.percentile(p, arr, len)
-    return values.last if p == 100
+    return arr[len - 1] if p == 100
     rank = p / 100.0 * (len - 1)
-    lower, upper = arr[rank.floor, 2]
+    lower = arr[rank.floor]
+    upper = arr[rank.floor + 1]
     lower + (upper - lower) * (rank - rank.floor)
   end
 end
@@ -51,6 +81,7 @@ module FastStatistics
       [
         ["Ruby (desc_stats)", :test_ruby_descriptive_statistics],
         ["Ruby (custom)", :test_ruby],
+        ["Ruby (narray)", :test_ruby_narray],
         ["Ruby (native_stats)", :test_ruby_native_statistics],
         ["Fast (unpacked)", :test_native],
         ["Fast (float32)", :test_native_float32],
@@ -90,10 +121,29 @@ module FastStatistics
       end
     end
 
+    def benchmark_ips!(benchmark_count = 100_000, variables_count = 12)
+      data = generate_data(benchmark_count, variables_count)
+      puts("Benchmarking with #{format_number(benchmark_count)} values for #{data.length} variables...")
+
+      ::Benchmark.ips do |x|
+        tests.each do |(name, method)|
+          x.report(name) do
+            send(method, data)
+          end
+        end
+
+        x.compare!
+      end
+    end
+
     private
 
     def test_ruby(data)
       RubyStatistics.descriptive_statistics(data)
+    end
+
+    def test_ruby_narray(data)
+      RubyStatistics.descriptive_statistics_narray(data)
     end
 
     def test_ruby_descriptive_statistics(data)

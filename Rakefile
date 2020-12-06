@@ -16,9 +16,9 @@ rescue LoadError
 end
 
 # Benchmark
-task :benchmark => :compile do 
+task :benchmark => [:clean, :compile] do 
   require_relative "./benchmark/bench"
   bench = FastStatistics::Benchmark.new
   bench.compare_results!
-  bench.benchmark!
+  bench.benchmark_ips!
 end

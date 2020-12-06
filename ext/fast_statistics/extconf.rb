@@ -10,9 +10,8 @@ end
 # Disable warnings
 [
   / -Wdeclaration-after-statement/,
-  / -Wno-self-assign/,
-  / -Wno-constant-logical-operand/,
-  / -Wno-parentheses-equality/
+  / -Wimplicit-int/,
+  / -Wimplicit-function-declaration/,
 ].each do |flag|
   CONFIG["warnflags"].slice!(flag)
 end
