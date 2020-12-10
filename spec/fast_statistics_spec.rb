@@ -31,7 +31,8 @@ describe FastStatistics do
 
   context "#descriptive_statistics" do
     it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics(data)
+      arr = FastStatistics::Array2D.new(data)
+      stats = arr.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
   end

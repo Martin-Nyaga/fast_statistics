@@ -1,16 +1,14 @@
 #include "fast_statistics.hpp"
 
+using namespace array_2d;
 static VALUE mFastStatistics;
+static VALUE cArray2D;
 
-#ifdef HAVE_XMMINTRIN_H
-extern "C" VALUE
-descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
+VALUE
+build_results_hashes(Stats* stats, int num_variables)
 {
-  array_2d::DFloat<double, array_2d::Packed64>* array =
-    new array_2d::DFloat<double, array_2d::Packed64>(arrays);
-  array_2d::Stats* stats = array->descriptive_statistics_simd();
-
   VALUE a_results = rb_ary_new();
+
   VALUE s_min = ID2SYM(rb_intern("min"));
   VALUE s_max = ID2SYM(rb_intern("max"));
   VALUE s_mean = ID2SYM(rb_intern("mean"));
@@ -19,9 +17,9 @@ descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
   VALUE s_q3 = ID2SYM(rb_intern("q3"));
   VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
 
-  for (int i = 0; i < array->cols; i++) {
+  for (int i = 0; i < num_variables; i++) {
     VALUE h_result = rb_hash_new();
-    array_2d::Stats var_stats = stats[i];
+    Stats var_stats = stats[i];
 
     rb_hash_aset(h_result, s_min, DBL2NUM(var_stats.min));
     rb_hash_aset(h_result, s_max, DBL2NUM(var_stats.max));
@@ -33,6 +31,19 @@ descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
 
     rb_ary_push(a_results, h_result);
   }
+
+  return a_results;
+}
+
+#ifdef HAVE_XMMINTRIN_H
+
+extern "C" VALUE
+descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
+{
+  DFloat<double, Packed64>* array = new DFloat<double, Packed64>(arrays);
+
+  Stats* stats = array->descriptive_statistics_simd();
+  VALUE a_results = build_results_hashes(stats, array->cols);
 
   delete array;
   return a_results;
@@ -41,33 +52,10 @@ descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
 extern "C" VALUE
 descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
 {
-  array_2d::DFloat<float, array_2d::Packed32>* array =
-    new array_2d::DFloat<float, array_2d::Packed32>(arrays);
-  array_2d::Stats* stats = array->descriptive_statistics_simd();
+  DFloat<float, Packed32>* array = new DFloat<float, Packed32>(arrays);
 
-  VALUE a_results = rb_ary_new();
-  VALUE s_min = ID2SYM(rb_intern("min"));
-  VALUE s_max = ID2SYM(rb_intern("max"));
-  VALUE s_mean = ID2SYM(rb_intern("mean"));
-  VALUE s_median = ID2SYM(rb_intern("median"));
-  VALUE s_q1 = ID2SYM(rb_intern("q1"));
-  VALUE s_q3 = ID2SYM(rb_intern("q3"));
-  VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
-
-  for (int i = 0; i < array->cols; i++) {
-    VALUE h_result = rb_hash_new();
-    array_2d::Stats var_stats = stats[i];
-
-    rb_hash_aset(h_result, s_min, DBL2NUM(var_stats.min));
-    rb_hash_aset(h_result, s_max, DBL2NUM(var_stats.max));
-    rb_hash_aset(h_result, s_mean, DBL2NUM(var_stats.mean));
-    rb_hash_aset(h_result, s_median, DBL2NUM(var_stats.median));
-    rb_hash_aset(h_result, s_q1, DBL2NUM(var_stats.q1));
-    rb_hash_aset(h_result, s_q3, DBL2NUM(var_stats.q3));
-    rb_hash_aset(h_result, s_standard_deviation, DBL2NUM(var_stats.standard_deviation));
-
-    rb_ary_push(a_results, h_result);
-  }
+  Stats* stats = array->descriptive_statistics_simd();
+  VALUE a_results = build_results_hashes(stats, array->cols);
 
   delete array;
   return a_results;
@@ -81,35 +69,12 @@ simd_enabled(VALUE self)
 #endif
 
 extern "C" VALUE
-descriptive_statistics(VALUE self, VALUE arrays)
+descriptive_statistics_unpacked(VALUE self, VALUE arrays)
 {
-  array_2d::DFloat<double, array_2d::Packed64>* array =
-    new array_2d::DFloat<double, array_2d::Packed64>(arrays);
-  array_2d::Stats* stats = array->descriptive_statistics();
+  DFloat<double, Unpacked>* array = new DFloat<double, Unpacked>(arrays);
 
-  VALUE a_results = rb_ary_new();
-  VALUE s_min = ID2SYM(rb_intern("min"));
-  VALUE s_max = ID2SYM(rb_intern("max"));
-  VALUE s_mean = ID2SYM(rb_intern("mean"));
-  VALUE s_median = ID2SYM(rb_intern("median"));
-  VALUE s_q1 = ID2SYM(rb_intern("q1"));
-  VALUE s_q3 = ID2SYM(rb_intern("q3"));
-  VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
-
-  for (int i = 0; i < array->cols; i++) {
-    VALUE h_result = rb_hash_new();
-    array_2d::Stats var_stats = stats[i];
-
-    rb_hash_aset(h_result, s_min, DBL2NUM(var_stats.min));
-    rb_hash_aset(h_result, s_max, DBL2NUM(var_stats.max));
-    rb_hash_aset(h_result, s_mean, DBL2NUM(var_stats.mean));
-    rb_hash_aset(h_result, s_median, DBL2NUM(var_stats.median));
-    rb_hash_aset(h_result, s_q1, DBL2NUM(var_stats.q1));
-    rb_hash_aset(h_result, s_q3, DBL2NUM(var_stats.q3));
-    rb_hash_aset(h_result, s_standard_deviation, DBL2NUM(var_stats.standard_deviation));
-
-    rb_ary_push(a_results, h_result);
-  }
+  Stats* stats = array->descriptive_statistics();
+  VALUE a_results = build_results_hashes(stats, array->cols);
 
   delete array;
   return a_results;
@@ -121,10 +86,72 @@ simd_disabled(VALUE self)
   return Qfalse;
 }
 
+void
+free_wrapped_array(void* array)
+{
+  ((DFloat64Unpacked*)array)->~DFloat<double, Unpacked>();
+}
+
+size_t
+wrapped_array_size(const void* data)
+{
+  DFloat<double, Unpacked>* array = (DFloat<double, Unpacked>*)data;
+  size_t size = sizeof(double) * array->cols * array->rows;
+  return size;
+}
+
+static const rb_data_type_t dfloat_wrapper = {
+	.wrap_struct_name = "dfloat",
+	.function = {
+		.dmark = NULL,
+		.dfree = free_wrapped_array,
+		.dsize = wrapped_array_size,
+	},
+	.data = NULL,
+	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
+};
+#define UNWRAP_DFLOAT64_UNPACKED(obj, var)                                                         \
+  TypedData_Get_Struct((obj), DFloat64Unpacked, &dfloat_wrapper, (var));
+
+VALUE
+cArray2D_initialize(VALUE self, VALUE arrays)
+{
+  Check_Type(arrays, T_ARRAY);
+  Check_Type(rb_ary_entry(arrays, 0), T_ARRAY);
+
+  DFloat<double, Unpacked>* dfloat;
+  UNWRAP_DFLOAT64_UNPACKED(self, dfloat);
+  new (dfloat) DFloat<double, Unpacked>(arrays);
+
+  return self;
+}
+
+VALUE
+cArray2D_alloc(VALUE self)
+{
+  DFloat64Unpacked* dfloat = (DFloat64Unpacked*)malloc(sizeof(DFloat64Unpacked));
+
+  return TypedData_Wrap_Struct(self, &dfloat_wrapper, dfloat);
+}
+
+VALUE
+cArray2D_descriptive_statistics(VALUE self)
+{
+  DFloat<double, Unpacked>* dfloat;
+  UNWRAP_DFLOAT64_UNPACKED(self, dfloat);
+  Stats* stats = dfloat->descriptive_statistics();
+  return build_results_hashes(stats, dfloat->cols);
+}
+
 extern "C" void
 Init_fast_statistics(void)
 {
   mFastStatistics = rb_define_module("FastStatistics");
+  cArray2D = rb_define_class_under(mFastStatistics, "Array2D", rb_cData);
+  rb_define_alloc_func(cArray2D, cArray2D_alloc);
+  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize), 1);
+  rb_define_method(
+    cArray2D, "descriptive_statistics", RUBY_METHOD_FUNC(cArray2D_descriptive_statistics), 0);
 
   // clang-format off
 #ifdef HAVE_XMMINTRIN_H
@@ -139,7 +166,7 @@ Init_fast_statistics(void)
       mFastStatistics, "descriptive_statistics_packed_float64",
       RUBY_METHOD_FUNC(descriptive_statistics_packed_float64), 1);
   rb_define_singleton_method( mFastStatistics, "descriptive_statistics_unpacked",
-      RUBY_METHOD_FUNC(descriptive_statistics), 1);
+      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
   rb_define_singleton_method(
       mFastStatistics, "simd_enabled?",
       RUBY_METHOD_FUNC(simd_enabled), 0);
@@ -148,16 +175,16 @@ Init_fast_statistics(void)
   // Provide all "packed" and "unpacked" versions as the same algorithm
   rb_define_singleton_method(
       mFastStatistics, "descriptive_statistics",
-      RUBY_METHOD_FUNC(descriptive_statistics), 1);
+      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
   rb_define_singleton_method(
       mFastStatistics, "descriptive_statistics_packed_float32",
-      RUBY_METHOD_FUNC(descriptive_statistics), 1);
+      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
   rb_define_singleton_method(
       mFastStatistics, "descriptive_statistics_packed_float64",
-      RUBY_METHOD_FUNC(descriptive_statistics), 1);
+      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
   rb_define_singleton_method(
       mFastStatistics, "descriptive_statistics_unpacked",
-      RUBY_METHOD_FUNC(descriptive_statistics), 1);
+      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
   rb_define_singleton_method(
       mFastStatistics, "simd_enabled?",
       RUBY_METHOD_FUNC(simd_disabled), 0);

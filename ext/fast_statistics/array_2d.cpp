@@ -61,12 +61,7 @@ DFloat<float, Packed32>::descriptive_statistics_simd()
 
   __m128 lengths = _mm_set_ps1((float)rows);
   for (int col = 0; col < cols; col += simd_pack_size) {
-    for (int i = 0; i < simd_pack_size; i++) {
-      if ((col + i) < cols) {
-        float* col_arr = base_ptr(col + i);
-        sort(col_arr);
-      }
-    }
+    sort_columns(col, simd_pack_size);
 
     __m128 mins = pack(col, 0);
     __m128 maxes = pack(col, rows - 1);
@@ -118,12 +113,7 @@ DFloat<double, Packed64>::descriptive_statistics_simd()
 
   __m128d lengths = _mm_set_pd1((double)rows);
   for (int col = 0; col < cols; col += simd_pack_size) {
-    for (int i = 0; i < simd_pack_size; i++) {
-      if ((col + i) < cols) {
-        double* col_arr = base_ptr(col + i);
-        sort(col_arr);
-      }
-    }
+    sort_columns(col, simd_pack_size);
 
     __m128d mins = pack(col, 0);
     __m128d maxes = pack(col, rows - 1);

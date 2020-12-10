@@ -13,6 +13,7 @@
 
 namespace array_2d
 {
+
 struct Stats {
   double min;
   double max;
@@ -49,11 +50,13 @@ class DFloat
   inline double sum(T* col);
   inline double standard_deviation(T* col, T mean);
   T safe_entry(int col, int row);
+  void sort_columns(int start_col, int pack_size);
 
 #ifdef HAVE_XMMINTRIN_H
   inline typename S::PackedSize percentile_packed(int start_col, float pct);
   inline typename S::PackedSize pack(int start_col, int row);
 #endif
+
 public:
   int cols;
   int rows;
@@ -70,10 +73,12 @@ public:
 
   ~DFloat()
   {
+    std::cout << "Freeing entries" << std::endl;
     free(entries);
     delete[] stats;
   }
 };
+typedef DFloat<double, Unpacked> DFloat64Unpacked;
 
 template<typename T, typename S>
 inline DFloat<T, S>::DFloat(VALUE arrays)
@@ -174,4 +179,18 @@ DFloat<T, S>::safe_entry(int col, int row)
     return 0;
   }
 }
+
+#ifdef HAVE_XMMINTRIN_H
+template<typename T, typename S>
+inline void
+DFloat<T, S>::sort_columns(int start_col, int pack_size) 
+{
+    for (int i = 0; i < pack_size; i++) {
+      if ((start_col + i) < cols) {
+        T* col_arr = base_ptr(start_col + i);
+        sort(col_arr);
+      }
+    }
+}
+#endif
 } // namespace array_2d
