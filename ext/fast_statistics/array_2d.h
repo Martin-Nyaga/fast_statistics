@@ -73,16 +73,22 @@ public:
 
   ~DFloat()
   {
-    std::cout << "Freeing entries" << std::endl;
     free(entries);
     delete[] stats;
   }
 };
 
+
 typedef DFloat<float, Unpacked> DFloat32Unpacked;
 typedef DFloat<double, Unpacked> DFloat64Unpacked;
+
+#ifdef HAVE_XMMINTRIN_H
 typedef DFloat<float, Packed32> DFloat32Packed;
 typedef DFloat<double, Packed64> DFloat64Packed;
+#else
+typedef DFloat<float, Unpacked> DFloat32Packed;
+typedef DFloat<double, Unpacked> DFloat64Packed;
+#endif
 
 template<typename T, typename S>
 inline DFloat<T, S>::DFloat(VALUE arrays)

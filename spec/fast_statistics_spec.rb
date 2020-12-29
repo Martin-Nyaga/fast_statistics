@@ -2,7 +2,7 @@
 
 require 'fast_statistics'
 
-describe FastStatistics do
+describe FastStatistics::Array2D do
   let(:data) do
     [
       [0.6269, 0.3783, 0.1477, 0.2374],
@@ -29,52 +29,82 @@ describe FastStatistics do
     ]
   end
 
-  context "#descriptive_statistics" do
-    it "calculates descriptive statistics" do
-      arr = FastStatistics::Array2D.new(data)
-      stats = arr.descriptive_statistics
+  context "with default initialization (double, packed)" do
+    subject { FastStatistics::Array2D.new(data) }
+
+    it "#descriptive_statistics works" do
+      stats = subject.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
   end
 
-  context "#descriptive_statistics_packed_float64" do
-    it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics_packed_float64(data)
+  context "with explicit initialization (dtype: double, packed: true)" do
+    subject { FastStatistics::Array2D.new(data, dtype: :double, packed: true) }
+
+    it "#descriptive_statistics works" do
+      stats = subject.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
 
-    it "works with 1 variable" do
-      stats = FastStatistics.descriptive_statistics_packed_float64(data.first(1))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(1))
+    context "with 1 variable" do
+      subject { FastStatistics::Array2D.new(data.first(1), dtype: :double, packed: true) }
+      it "#descriptive_statistics works" do
+        stats = subject.descriptive_statistics
+        expect(stats).to have_same_statistics_values_as(expected_stats.first(1))
+      end
     end
 
-    it "works with an odd number of variables" do
-      stats = FastStatistics.descriptive_statistics_packed_float64(data.first(5))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(5))
-    end
-  end
-
-  context "#descriptive_statistics_packed_float32" do
-    it "calculates descriptive statistics" do
-      stats = FastStatistics.descriptive_statistics_packed_float32(data)
-      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(10e-6)
-    end
-
-    it "works with 1 variable" do
-      stats = FastStatistics.descriptive_statistics_packed_float32(data.first(1))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(1)).within_threshold(10e-6)
-    end
-
-    it "works with an odd number of variables" do
-      stats = FastStatistics.descriptive_statistics_packed_float32(data.first(5))
-      expect(stats).to have_same_statistics_values_as(expected_stats.first(5)).within_threshold(10e-6)
+    context "with an odd number of variables" do
+      subject { FastStatistics::Array2D.new(data.first(5), dtype: :double, packed: true) }
+      it "#descriptive_statistics works" do
+        stats = subject.descriptive_statistics
+        expect(stats).to have_same_statistics_values_as(expected_stats.first(5))
+      end
     end
   end
 
-  context "#descriptive_statistics_unpacked" do
-    it "calculates descriptive statistics with the 'unpacked' algorithm" do
-      stats = FastStatistics.descriptive_statistics_unpacked(data)
+  context "with explicit initialization (dtype: float, packed: true)" do
+    subject { FastStatistics::Array2D.new(data, dtype: :float, packed: true) }
+    let(:threshold) { 10e-6 }
+
+    it "#descriptive_statistics works" do
+      stats = subject.descriptive_statistics
+      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(threshold)
+    end
+
+    context "with 1 variable" do
+      subject { FastStatistics::Array2D.new(data.first(1), dtype: :float, packed: true) }
+      it "#descriptive_statistics works" do
+        stats = subject.descriptive_statistics
+        expect(stats).to have_same_statistics_values_as(expected_stats.first(1)).within_threshold(threshold)
+      end
+    end
+
+    context "with an odd number of variables" do
+      subject { FastStatistics::Array2D.new(data.first(5), dtype: :float, packed: true) }
+      it "#descriptive_statistics works" do
+        stats = subject.descriptive_statistics
+        expect(stats).to have_same_statistics_values_as(expected_stats.first(5)).within_threshold(threshold)
+      end
+    end
+  end
+
+  context "with explicit initialization (dtype: double, packed: false)" do
+    subject { FastStatistics::Array2D.new(data, dtype: :double, packed: false) }
+
+    it "#descriptive_statistics works" do
+      stats = subject.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats)
+    end
+  end
+
+  context "with explicit initialization (dtype: float, packed: false)" do
+    subject { FastStatistics::Array2D.new(data, dtype: :float, packed: false) }
+    let(:threshold) { 10e-6 }
+
+    it "#descriptive_statistics works" do
+      stats = subject.descriptive_statistics
+      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(threshold)
     end
   end
 

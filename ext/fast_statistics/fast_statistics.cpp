@@ -1,10 +1,11 @@
 #include "fast_statistics.h"
 
 using namespace array_2d;
-static VALUE mFastStatistics;
-static VALUE cArray2D;
 
 #define rb_sym(str) ID2SYM(rb_intern(str))
+
+static VALUE mFastStatistics;
+static VALUE cArray2D;
 
 VALUE
 build_results_hashes(Stats* stats, int num_variables)
@@ -38,49 +39,12 @@ build_results_hashes(Stats* stats, int num_variables)
 }
 
 #ifdef HAVE_XMMINTRIN_H
-
-extern "C" VALUE
-descriptive_statistics_packed_float64(VALUE self, VALUE arrays)
-{
-  DFloat<double, Packed64>* array = new DFloat<double, Packed64>(arrays);
-
-  Stats* stats = array->descriptive_statistics_simd();
-  VALUE a_results = build_results_hashes(stats, array->cols);
-
-  delete array;
-  return a_results;
-}
-
-extern "C" VALUE
-descriptive_statistics_packed_float32(VALUE self, VALUE arrays)
-{
-  DFloat<float, Packed32>* array = new DFloat<float, Packed32>(arrays);
-
-  Stats* stats = array->descriptive_statistics_simd();
-  VALUE a_results = build_results_hashes(stats, array->cols);
-
-  delete array;
-  return a_results;
-}
-
 extern "C" VALUE
 simd_enabled(VALUE self)
 {
   return Qtrue;
 }
 #endif
-
-extern "C" VALUE
-descriptive_statistics_unpacked(VALUE self, VALUE arrays)
-{
-  DFloat<double, Unpacked>* array = new DFloat<double, Unpacked>(arrays);
-
-  Stats* stats = array->descriptive_statistics();
-  VALUE a_results = build_results_hashes(stats, array->cols);
-
-  delete array;
-  return a_results;
-}
 
 extern "C" VALUE
 simd_disabled(VALUE self)
@@ -91,7 +55,7 @@ simd_disabled(VALUE self)
 void
 free_wrapped_array(void* array)
 {
-  ((DFloat64Unpacked*)array)->~DFloat<double, Unpacked>();
+  ((DFloat64Unpacked*)array)->~DFloat64Unpacked();
 }
 
 size_t
@@ -182,7 +146,7 @@ cArray2D_descriptive_statistics(VALUE self)
   if (dtype == rb_sym("float")) {
     if (packed == Qtrue) {
       DFloat32Packed* dfloat = ((DFloat32Packed*)dfloat_untyped);
-      Stats* stats = dfloat->descriptive_statistics();
+      Stats* stats = dfloat->descriptive_statistics_simd();
       return build_results_hashes(stats, dfloat->cols);
     } else {
       DFloat32Unpacked* dfloat = ((DFloat32Unpacked*)dfloat_untyped);
@@ -192,7 +156,7 @@ cArray2D_descriptive_statistics(VALUE self)
   } else if (dtype == rb_sym("double")) {
     if (packed == Qtrue) {
       DFloat64Packed* dfloat = ((DFloat64Packed*)dfloat_untyped);
-      Stats* stats = dfloat->descriptive_statistics();
+      Stats* stats = dfloat->descriptive_statistics_simd();
       return build_results_hashes(stats, dfloat->cols);
     } else {
       DFloat64Unpacked* dfloat = ((DFloat64Unpacked*)dfloat_untyped);
@@ -214,41 +178,9 @@ Init_fast_statistics(void)
   rb_define_method(
     cArray2D, "descriptive_statistics", RUBY_METHOD_FUNC(cArray2D_descriptive_statistics), 0);
 
-  // clang-format off
 #ifdef HAVE_XMMINTRIN_H
-  // Provide double precision packed as default
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics",
-      RUBY_METHOD_FUNC(descriptive_statistics_packed_float64), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics_packed_float32",
-      RUBY_METHOD_FUNC(descriptive_statistics_packed_float32), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics_packed_float64",
-      RUBY_METHOD_FUNC(descriptive_statistics_packed_float64), 1);
-  rb_define_singleton_method( mFastStatistics, "descriptive_statistics_unpacked",
-      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "simd_enabled?",
-      RUBY_METHOD_FUNC(simd_enabled), 0);
+  rb_define_singleton_method(mFastStatistics, "simd_enabled?", RUBY_METHOD_FUNC(simd_enabled), 0);
 #else
-  // No SIMD support:
-  // Provide all "packed" and "unpacked" versions as the same algorithm
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics",
-      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics_packed_float32",
-      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics_packed_float64",
-      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "descriptive_statistics_unpacked",
-      RUBY_METHOD_FUNC(descriptive_statistics_unpacked), 1);
-  rb_define_singleton_method(
-      mFastStatistics, "simd_enabled?",
-      RUBY_METHOD_FUNC(simd_disabled), 0);
+  rb_define_singleton_method(mFastStatistics, "simd_enabled?", RUBY_METHOD_FUNC(simd_disabled), 0);
 #endif
-  // clang-format on
 }

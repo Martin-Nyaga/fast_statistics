@@ -176,15 +176,15 @@ module FastStatistics
     end
 
     def test_native(data)
-      FastStatistics.descriptive_statistics_unpacked(data)
+      FastStatistics::Array2D.new(data).descriptive_statistics
     end
 
     def test_native_float32(data)
-      FastStatistics.descriptive_statistics_packed_float32(data)
+      FastStatistics::Array2D.new(data, dtype: :float).descriptive_statistics
     end
 
     def test_native_float64(data)
-      FastStatistics.descriptive_statistics_packed_float64(data)
+      FastStatistics::Array2D.new(data, dtype: :double).descriptive_statistics
     end
 
     def generate_data(length, variables = 8)
