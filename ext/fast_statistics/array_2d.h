@@ -78,7 +78,11 @@ public:
     delete[] stats;
   }
 };
+
+typedef DFloat<float, Unpacked> DFloat32Unpacked;
 typedef DFloat<double, Unpacked> DFloat64Unpacked;
+typedef DFloat<float, Packed32> DFloat32Packed;
+typedef DFloat<double, Packed64> DFloat64Packed;
 
 template<typename T, typename S>
 inline DFloat<T, S>::DFloat(VALUE arrays)
@@ -183,14 +187,14 @@ DFloat<T, S>::safe_entry(int col, int row)
 #ifdef HAVE_XMMINTRIN_H
 template<typename T, typename S>
 inline void
-DFloat<T, S>::sort_columns(int start_col, int pack_size) 
+DFloat<T, S>::sort_columns(int start_col, int pack_size)
 {
-    for (int i = 0; i < pack_size; i++) {
-      if ((start_col + i) < cols) {
-        T* col_arr = base_ptr(start_col + i);
-        sort(col_arr);
-      }
+  for (int i = 0; i < pack_size; i++) {
+    if ((start_col + i) < cols) {
+      T* col_arr = base_ptr(start_col + i);
+      sort(col_arr);
     }
+  }
 }
 #endif
 } // namespace array_2d

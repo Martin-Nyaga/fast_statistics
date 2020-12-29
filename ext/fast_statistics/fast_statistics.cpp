@@ -1,21 +1,23 @@
-#include "fast_statistics.hpp"
+#include "fast_statistics.h"
 
 using namespace array_2d;
 static VALUE mFastStatistics;
 static VALUE cArray2D;
+
+#define rb_sym(str) ID2SYM(rb_intern(str))
 
 VALUE
 build_results_hashes(Stats* stats, int num_variables)
 {
   VALUE a_results = rb_ary_new();
 
-  VALUE s_min = ID2SYM(rb_intern("min"));
-  VALUE s_max = ID2SYM(rb_intern("max"));
-  VALUE s_mean = ID2SYM(rb_intern("mean"));
-  VALUE s_median = ID2SYM(rb_intern("median"));
-  VALUE s_q1 = ID2SYM(rb_intern("q1"));
-  VALUE s_q3 = ID2SYM(rb_intern("q3"));
-  VALUE s_standard_deviation = ID2SYM(rb_intern("standard_deviation"));
+  VALUE s_min = rb_sym("min");
+  VALUE s_max = rb_sym("max");
+  VALUE s_mean = rb_sym("mean");
+  VALUE s_median = rb_sym("median");
+  VALUE s_q1 = rb_sym("q1");
+  VALUE s_q3 = rb_sym("q3");
+  VALUE s_standard_deviation = rb_sym("standard_deviation");
 
   for (int i = 0; i < num_variables; i++) {
     VALUE h_result = rb_hash_new();
@@ -96,7 +98,7 @@ size_t
 wrapped_array_size(const void* data)
 {
   DFloat<double, Unpacked>* array = (DFloat<double, Unpacked>*)data;
-  size_t size = sizeof(double) * array->cols * array->rows;
+  size_t size = sizeof(array->entries) + sizeof(*array);
   return size;
 }
 
@@ -110,18 +112,52 @@ static const rb_data_type_t dfloat_wrapper = {
 	.data = NULL,
 	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
-#define UNWRAP_DFLOAT64_UNPACKED(obj, var)                                                         \
-  TypedData_Get_Struct((obj), DFloat64Unpacked, &dfloat_wrapper, (var));
 
+#define UNWRAP_DFLOAT(obj, var) TypedData_Get_Struct((obj), void*, &dfloat_wrapper, (var));
+
+/*
+ * def initialize(arrays, dtype: :float, packed: true)
+ */
 VALUE
-cArray2D_initialize(VALUE self, VALUE arrays)
+cArray2D_initialize(VALUE argc, VALUE* argv, VALUE self)
 {
+  VALUE arrays, opts, dtype, packed;
+  rb_scan_args(argc, argv, "1:", &arrays, &opts);
+  if (NIL_P(opts)) opts = rb_hash_new();
+
+  dtype = rb_hash_aref(opts, rb_sym("dtype"));
+  if (dtype == Qnil) dtype = rb_sym("double");
+  packed = rb_hash_aref(opts, rb_sym("packed"));
+  if (packed == Qnil) packed = Qtrue;
+
   Check_Type(arrays, T_ARRAY);
   Check_Type(rb_ary_entry(arrays, 0), T_ARRAY);
+  Check_Type(dtype, T_SYMBOL);
+  if (!(packed == Qtrue || packed == Qfalse))
+    rb_raise(rb_eTypeError, "Expected packed: to be a boolean");
 
-  DFloat<double, Unpacked>* dfloat;
-  UNWRAP_DFLOAT64_UNPACKED(self, dfloat);
-  new (dfloat) DFloat<double, Unpacked>(arrays);
+  // Initialize dfloat structure
+  void* dfloat;
+  UNWRAP_DFLOAT(self, dfloat);
+
+  rb_ivar_set(self, rb_intern("@dtype"), dtype);
+  rb_ivar_set(self, rb_intern("@packed"), packed);
+
+  if (dtype == rb_sym("float")) {
+    if (packed == Qtrue) {
+      new (dfloat) DFloat32Packed(arrays);
+    } else {
+      new (dfloat) DFloat32Unpacked(arrays);
+    }
+  } else if (dtype == rb_sym("double")) {
+    if (packed == Qtrue) {
+      new (dfloat) DFloat64Packed(arrays);
+    } else {
+      new (dfloat) DFloat64Unpacked(arrays);
+    }
+  } else {
+    rb_raise(rb_eTypeError, "Expected :dtype to be one of :float, :double");
+  }
 
   return self;
 }
@@ -129,7 +165,7 @@ cArray2D_initialize(VALUE self, VALUE arrays)
 VALUE
 cArray2D_alloc(VALUE self)
 {
-  DFloat64Unpacked* dfloat = (DFloat64Unpacked*)malloc(sizeof(DFloat64Unpacked));
+  void* dfloat = (void*)malloc(sizeof(void*));
 
   return TypedData_Wrap_Struct(self, &dfloat_wrapper, dfloat);
 }
@@ -137,10 +173,35 @@ cArray2D_alloc(VALUE self)
 VALUE
 cArray2D_descriptive_statistics(VALUE self)
 {
-  DFloat<double, Unpacked>* dfloat;
-  UNWRAP_DFLOAT64_UNPACKED(self, dfloat);
-  Stats* stats = dfloat->descriptive_statistics();
-  return build_results_hashes(stats, dfloat->cols);
+  void* dfloat_untyped;
+  UNWRAP_DFLOAT(self, dfloat_untyped);
+
+  VALUE packed = rb_ivar_get(self, rb_intern("@packed"));
+  VALUE dtype = rb_ivar_get(self, rb_intern("@dtype"));
+
+  if (dtype == rb_sym("float")) {
+    if (packed == Qtrue) {
+      DFloat32Packed* dfloat = ((DFloat32Packed*)dfloat_untyped);
+      Stats* stats = dfloat->descriptive_statistics();
+      return build_results_hashes(stats, dfloat->cols);
+    } else {
+      DFloat32Unpacked* dfloat = ((DFloat32Unpacked*)dfloat_untyped);
+      Stats* stats = dfloat->descriptive_statistics();
+      return build_results_hashes(stats, dfloat->cols);
+    }
+  } else if (dtype == rb_sym("double")) {
+    if (packed == Qtrue) {
+      DFloat64Packed* dfloat = ((DFloat64Packed*)dfloat_untyped);
+      Stats* stats = dfloat->descriptive_statistics();
+      return build_results_hashes(stats, dfloat->cols);
+    } else {
+      DFloat64Unpacked* dfloat = ((DFloat64Unpacked*)dfloat_untyped);
+      Stats* stats = dfloat->descriptive_statistics();
+      return build_results_hashes(stats, dfloat->cols);
+    }
+  } else {
+    rb_raise(rb_eTypeError, "Expected :dtype to be one of :float, :double");
+  }
 }
 
 extern "C" void
@@ -149,7 +210,7 @@ Init_fast_statistics(void)
   mFastStatistics = rb_define_module("FastStatistics");
   cArray2D = rb_define_class_under(mFastStatistics, "Array2D", rb_cData);
   rb_define_alloc_func(cArray2D, cArray2D_alloc);
-  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize), 1);
+  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize), -1);
   rb_define_method(
     cArray2D, "descriptive_statistics", RUBY_METHOD_FUNC(cArray2D_descriptive_statistics), 0);
 

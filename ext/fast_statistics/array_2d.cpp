@@ -1,4 +1,4 @@
-#include "array_2d.hpp"
+#include "array_2d.h"
 
 namespace array_2d
 {
