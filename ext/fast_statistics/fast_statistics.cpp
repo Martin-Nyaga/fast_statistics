@@ -42,16 +42,12 @@ build_results_hashes(Stats* stats, int num_variables)
 void
 free_wrapped_array(void* array)
 {
-  // It's okay to cast to a Dfloat becuase all DFloats have the same
-  // size & memory layout
   ((DFloat*)array)->~DFloat();
 }
 
 size_t
 wrapped_array_size(const void* data)
 {
-  // It's okay to cast to a Dfloat becuase all DFloats have the same
-  // size & memory layout
   DFloat* array = (DFloat*)data;
   size_t size = sizeof(array->entries) + sizeof(*array);
   return size;

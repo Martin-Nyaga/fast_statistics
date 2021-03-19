@@ -168,13 +168,13 @@ DFloat::descriptive_statistics_packed()
     for (int simd_slot_index = 0; simd_slot_index < simd_pack_size; simd_slot_index++) {
       if ((col + simd_slot_index) < cols) {
         Stats var_stats;
-        var_stats.min = MM_GET_INDEX_DOUBLE(mins, simd_slot_index);
-        var_stats.max = MM_GET_INDEX_DOUBLE(maxes, simd_slot_index);
-        var_stats.mean = MM_GET_INDEX_DOUBLE(means, simd_slot_index);
-        var_stats.median = MM_GET_INDEX_DOUBLE(medians, simd_slot_index);
-        var_stats.q1 = MM_GET_INDEX_DOUBLE(q1s, simd_slot_index);
-        var_stats.q3 = MM_GET_INDEX_DOUBLE(q3s, simd_slot_index);
-        var_stats.standard_deviation = MM_GET_INDEX_DOUBLE(stdevs, simd_slot_index);
+        var_stats.min = MM_GET_INDEX(mins, simd_slot_index);
+        var_stats.max = MM_GET_INDEX(maxes, simd_slot_index);
+        var_stats.mean = MM_GET_INDEX(means, simd_slot_index);
+        var_stats.median = MM_GET_INDEX(medians, simd_slot_index);
+        var_stats.q1 = MM_GET_INDEX(q1s, simd_slot_index);
+        var_stats.q3 = MM_GET_INDEX(q3s, simd_slot_index);
+        var_stats.standard_deviation = MM_GET_INDEX(stdevs, simd_slot_index);
 
         stats[col + simd_slot_index] = var_stats;
       }

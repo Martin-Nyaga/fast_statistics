@@ -5,9 +5,7 @@
 
 #ifdef HAVE_XMMINTRIN_H
 #include <xmmintrin.h>
-#define MM_GET_INDEX_FLOAT(packed, index) *(((floadouble*)&packed) + index);
-#define MM_GET_INDEX_DOUBLE(packed, index) *(((double*)&packed) + index);
-
+#define MM_GET_INDEX(packed, index) *(((double*)&packed) + index);
 #endif
 
 namespace array_2d
