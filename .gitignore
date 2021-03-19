@@ -16,5 +16,6 @@ compile_commands.json
 ext/fast_statistics/Makefile
 ext/fast_statistics/mkmf.log
 .clang-format
+.cache
 
 squiggles.txt
