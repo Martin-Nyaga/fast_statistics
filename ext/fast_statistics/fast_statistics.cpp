@@ -57,16 +57,14 @@ wrapped_array_size(const void* data)
   return size;
 }
 
-static const rb_data_type_t dfloat_wrapper = {
-	.wrap_struct_name = "dfloat",
-	.function = {
-		.dmark = NULL,
-		.dfree = free_wrapped_array,
-		.dsize = wrapped_array_size,
-	},
-	.data = NULL,
-	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
-};
+static rb_data_type_t dfloat_wrapper = [] {
+  rb_data_type_t wrapper{};
+  wrapper.wrap_struct_name = "dfloat";
+  wrapper.function = { dmark : NULL, dfree : free_wrapped_array, dsize : wrapped_array_size };
+  wrapper.data = NULL;
+  wrapper.flags = RUBY_TYPED_FREE_IMMEDIATELY;
+  return wrapper;
+}();
 
 VALUE
 cArray2D_alloc(VALUE self)
@@ -79,7 +77,6 @@ cArray2D_alloc(VALUE self)
 void
 cArray2D_initialize_parse_arguments(VALUE argc, VALUE* argv, VALUE* arrays)
 {
-  VALUE opts;
   rb_scan_args(argc, argv, "1", arrays);
 
   // Typecheck 2d array
