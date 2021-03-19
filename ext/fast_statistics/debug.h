@@ -1,3 +1,4 @@
+#ifdef DEBUG
 #ifndef DEBUG_H
 #define DEBUG_H
 
@@ -24,9 +25,12 @@ struct DebugTimer {
   }
 
   ~DebugTimer() {
-    /* printf("\n%30s:\t %-10llu", name, __rdtsc() - counter); */
+    printf("\n%30s:\t %-10llu", name, __rdtsc() - counter);
     free(name);
     fflush(stdout);
   }
 };
+#endif
+#else
+#define PROFILE();
 #endif

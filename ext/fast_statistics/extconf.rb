@@ -5,6 +5,7 @@ if ENV["DEBUG"]
   puts "Compiling in debug mode..."
   CONFIG["debugflags"] = "-g"
   CONFIG["optflags"] = "-O0"
+  $defs << "-DDEBUG"
 end
 
 # Disable warnings
