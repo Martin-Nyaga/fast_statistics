@@ -4,54 +4,124 @@
 namespace array_2d
 {
 
-inline int
-clamp_max(int val, int max)
+DFloat::~DFloat()
 {
-  return val > max ? val : max;
+  free(entries);
+  delete[] stats;
+}
+
+DFloat::DFloat(VALUE arrays)
+{
+  cols = rb_array_len(arrays);
+  rows = rb_array_len(rb_ary_entry(arrays, 0));
+  entries = (double*)malloc(cols * rows * sizeof(double));
+  stats = NULL;
+
+  for (int j = 0; j < cols; j++) {
+    for (int i = 0; i < rows; i++) {
+      entries[j * rows + i] = (double)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, j), i));
+    }
+  }
+}
+
+inline void
+DFloat::sort(double* col)
+{
+  std::sort(col, col + rows);
+}
+
+inline double
+DFloat::percentile(double* col, double pct)
+{
+  if (pct == 1.0) return col[rows - 1];
+  double rank = pct * (double)(rows - 1);
+  int floored_rank = floor(rank);
+  double lower = col[floored_rank];
+  double upper = col[floored_rank + 1];
+  return lower + (upper - lower) * (rank - floored_rank);
+}
+
+inline double
+DFloat::sum(double* col)
+{
+  double sum = 0.0;
+  for (int row = 0; row < rows; row++) {
+    sum += col[row];
+  }
+  return sum;
+}
+
+inline double
+DFloat::standard_deviation(double* col, double mean)
+{
+  double variance = 0.0f;
+  for (int i = 0; i < rows; i++) {
+    double value = col[i];
+    double deviation = value - mean;
+    double sqr_deviation = deviation * deviation;
+    variance += (sqr_deviation / (double)rows);
+  }
+  double result = sqrt(variance);
+  return result;
+}
+
+Stats*
+DFloat::descriptive_statistics()
+{
+  stats = new Stats[cols];
+
+  for (int col = 0; col < cols; col++) {
+    Stats var_stats;
+    double* col_arr = base_ptr(col);
+
+    sort(col_arr);
+
+    var_stats.min = col_arr[0];
+    var_stats.max = col_arr[rows - 1];
+    var_stats.median = percentile(col_arr, 0.5);
+    var_stats.q1 = percentile(col_arr, 0.25);
+    var_stats.q3 = percentile(col_arr, 0.75);
+    double total = sum(col_arr);
+    var_stats.mean = total / (double)rows;
+    var_stats.standard_deviation = standard_deviation(col_arr, var_stats.mean);
+
+    stats[col] = var_stats;
+  }
+
+  return stats;
 }
 
 #ifdef HAVE_XMMINTRIN_H
-template<>
-inline Packed32::PackedSize
-DFloat<float, Packed32>::pack(int start_col, int row)
+inline double
+DFloat::safe_entry(int col, int row)
 {
-  PROFILE;
-
-  __m128 packed;
-  packed = _mm_set_ps(
-    safe_entry(start_col + 3, row),
-    safe_entry(start_col + 2, row),
-    safe_entry(start_col + 1, row),
-    safe_entry(start_col + 0, row));
-
-  return packed;
+  if (col < cols) {
+    return *(base_ptr(col) + row);
+  } else {
+    return 0;
+  }
 }
 
-template<>
-inline Packed64::PackedSize
-DFloat<double, Packed64>::pack(int start_col, int row)
+inline void
+DFloat::sort_columns(int start_col, int pack_size)
+{
+  for (int i = 0; i < pack_size; i++) {
+    if ((start_col + i) < cols) {
+      double* col_arr = base_ptr(start_col + i);
+      sort(col_arr);
+    }
+  }
+}
+
+inline __m128d
+DFloat::pack(int start_col, int row)
 {
   __m128d packed = _mm_set_pd(safe_entry(start_col + 1, row), safe_entry(start_col + 0, row));
   return packed;
 }
 
-template<>
-inline __m128
-DFloat<float, Packed32>::percentile_packed(int start_col, float pct)
-{
-  if (pct == 1.0) return pack(start_col, rows - 1);
-  float rank = pct * (float)(rows - 1);
-  int floored_rank = floor(rank);
-  __m128 lower = pack(start_col, floored_rank);
-  __m128 upper = pack(start_col, floored_rank + 1);
-  __m128 upper_minus_lower = _mm_sub_ps(upper, lower);
-  __m128 rank_minus_floored_rank = _mm_sub_ps(_mm_set_ps1(rank), _mm_set_ps1((float)floored_rank));
-  return _mm_add_ps(lower, _mm_mul_ps(upper_minus_lower, rank_minus_floored_rank));
-}
-
-template<>
-inline Packed64::PackedSize
-DFloat<double, Packed64>::percentile_packed(int start_col, float pct)
+inline __m128d
+DFloat::percentile_packed(int start_col, float pct)
 {
   if (pct == 1.0) return pack(start_col, rows - 1);
   double rank = pct * (double)(rows - 1);
@@ -63,61 +133,8 @@ DFloat<double, Packed64>::percentile_packed(int start_col, float pct)
   return _mm_add_pd(lower, _mm_mul_pd(upper_minus_lower, rank_minus_floored_rank));
 }
 
-template<>
 Stats*
-DFloat<float, Packed32>::descriptive_statistics_simd()
-{
-  stats = new Stats[cols];
-  const int simd_pack_size = 4;
-
-  __m128 lengths = _mm_set_ps1((float)rows);
-  for (int col = 0; col < cols; col += simd_pack_size) {
-    sort_columns(col, simd_pack_size);
-
-    __m128 mins = pack(col, 0);
-    __m128 maxes = pack(col, rows - 1);
-    __m128 sums = _mm_setzero_ps();
-    for (int row_index = 0; row_index < rows; row_index++) {
-      __m128 packed = pack(col, row_index);
-      sums = _mm_add_ps(sums, packed);
-    }
-    __m128 means = _mm_div_ps(sums, lengths);
-
-    __m128 medians = percentile_packed(col, 0.5f);
-    __m128 q1s = percentile_packed(col, 0.25f);
-    __m128 q3s = percentile_packed(col, 0.75f);
-
-    __m128 variances = _mm_setzero_ps();
-    for (int row_index = 0; row_index < rows; row_index++) {
-      __m128 packed = pack(col, row_index);
-      __m128 deviation = _mm_sub_ps(packed, means);
-      __m128 sqr_deviation = _mm_mul_ps(deviation, deviation);
-      variances = _mm_add_ps(variances, _mm_div_ps(sqr_deviation, lengths));
-    }
-    __m128 stdevs = _mm_sqrt_ps(variances);
-
-    for (int simd_slot_index = 0; simd_slot_index < simd_pack_size; simd_slot_index++) {
-      if ((col + simd_slot_index) < cols) {
-        Stats var_stats;
-        var_stats.min = MM_GET_INDEX_FLOAT(mins, simd_slot_index);
-        var_stats.max = MM_GET_INDEX_FLOAT(maxes, simd_slot_index);
-        var_stats.mean = MM_GET_INDEX_FLOAT(means, simd_slot_index);
-        var_stats.median = MM_GET_INDEX_FLOAT(medians, simd_slot_index);
-        var_stats.q1 = MM_GET_INDEX_FLOAT(q1s, simd_slot_index);
-        var_stats.q3 = MM_GET_INDEX_FLOAT(q3s, simd_slot_index);
-        var_stats.standard_deviation = MM_GET_INDEX_FLOAT(stdevs, simd_slot_index);
-
-        stats[col + simd_slot_index] = var_stats;
-      }
-    }
-  }
-
-  return stats;
-}
-
-template<>
-Stats*
-DFloat<double, Packed64>::descriptive_statistics_simd()
+DFloat::descriptive_statistics_packed()
 {
   stats = new Stats[cols];
   const int simd_pack_size = 2;
@@ -168,5 +185,4 @@ DFloat<double, Packed64>::descriptive_statistics_simd()
 }
 
 #endif
-
 } // namespace array_2d

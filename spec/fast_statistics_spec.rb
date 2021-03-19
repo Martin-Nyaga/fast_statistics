@@ -29,7 +29,7 @@ describe FastStatistics::Array2D do
     ]
   end
 
-  context "with default initialization (double, packed)" do
+  context "with 8 variables" do
     subject { FastStatistics::Array2D.new(data) }
 
     it "#descriptive_statistics works" do
@@ -38,101 +38,19 @@ describe FastStatistics::Array2D do
     end
   end
 
-  context "with explicit initialization (dtype: double, packed: true)" do
-    subject { FastStatistics::Array2D.new(data, dtype: :double, packed: true) }
-
+  context "with 1 variable" do
+    subject { FastStatistics::Array2D.new(data.first(1)) }
     it "#descriptive_statistics works" do
       stats = subject.descriptive_statistics
-      expect(stats).to have_same_statistics_values_as(expected_stats)
-    end
-
-    it "#mean calculates the mean" do
-      means = subject.mean
-      expected_means = expected_stats.map { |stat| stat[:mean] }
-      expect(means).to eq(expected_means)
-    end
-
-    context "with 1 variable" do
-      subject { FastStatistics::Array2D.new(data.first(1), dtype: :double, packed: true) }
-      it "#descriptive_statistics works" do
-        stats = subject.descriptive_statistics
-        expect(stats).to have_same_statistics_values_as(expected_stats.first(1))
-      end
-    end
-
-    context "with an odd number of variables" do
-      subject { FastStatistics::Array2D.new(data.first(5), dtype: :double, packed: true) }
-      it "#descriptive_statistics works" do
-        stats = subject.descriptive_statistics
-        expect(stats).to have_same_statistics_values_as(expected_stats.first(5))
-      end
+      expect(stats).to have_same_statistics_values_as(expected_stats.first(1))
     end
   end
 
-  context "with explicit initialization (dtype: float, packed: true)" do
-    subject { FastStatistics::Array2D.new(data, dtype: :float, packed: true) }
-    let(:threshold) { 10e-6 }
-
+  context "with an odd number of variables" do
+    subject { FastStatistics::Array2D.new(data.first(5)) }
     it "#descriptive_statistics works" do
       stats = subject.descriptive_statistics
-      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(threshold)
-    end
-
-    it "#mean calculates the mean" do
-      means = subject.mean
-      expected_means = expected_stats.map { |stat| stat[:mean] }
-      means.zip(expected_means) do |(actual, expected)|
-        expect(actual).to be_within(threshold).of(expected)
-      end
-    end
-
-    context "with 1 variable" do
-      subject { FastStatistics::Array2D.new(data.first(1), dtype: :float, packed: true) }
-      it "#descriptive_statistics works" do
-        stats = subject.descriptive_statistics
-        expect(stats).to have_same_statistics_values_as(expected_stats.first(1)).within_threshold(threshold)
-      end
-    end
-
-    context "with an odd number of variables" do
-      subject { FastStatistics::Array2D.new(data.first(5), dtype: :float, packed: true) }
-      it "#descriptive_statistics works" do
-        stats = subject.descriptive_statistics
-        expect(stats).to have_same_statistics_values_as(expected_stats.first(5)).within_threshold(threshold)
-      end
-    end
-  end
-
-  context "with explicit initialization (dtype: double, packed: false)" do
-    subject { FastStatistics::Array2D.new(data, dtype: :double, packed: false) }
-
-    it "#descriptive_statistics works" do
-      stats = subject.descriptive_statistics
-      expect(stats).to have_same_statistics_values_as(expected_stats)
-    end
-
-    it "#mean calculates the mean" do
-      means = subject.mean
-      expected_means = expected_stats.map { |stat| stat[:mean] }
-      expect(means).to eq(expected_means)
-    end
-  end
-
-  context "with explicit initialization (dtype: float, packed: false)" do
-    subject { FastStatistics::Array2D.new(data, dtype: :float, packed: false) }
-    let(:threshold) { 10e-6 }
-
-    it "#descriptive_statistics works" do
-      stats = subject.descriptive_statistics
-      expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(threshold)
-    end
-
-    it "#mean calculates the mean" do
-      means = subject.mean
-      expected_means = expected_stats.map { |stat| stat[:mean] }
-      means.zip(expected_means) do |(actual, expected)|
-        expect(actual).to be_within(threshold).of(expected)
-      end
+      expect(stats).to have_same_statistics_values_as(expected_stats.first(5))
     end
   end
 

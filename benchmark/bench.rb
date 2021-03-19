@@ -30,8 +30,7 @@ class DescriptiveStatsBenchmark
       ["Ruby (custom)", :ruby],
       ["Ruby (narray)", :narray],
       ["Ruby (native_stats)", :ruby_native_statistics],
-      ["Fast (float32)", :fast_statistics_float32],
-      ["Fast (float64)", :fast_statistics_float64],
+      ["Fast", :fast_statistics_float32],
     ]
   end
 
@@ -119,65 +118,11 @@ class DescriptiveStatsBenchmark
   end
 
   def fast_statistics_float32(data)
-    FastStatistics::Array2D.new(data, dtype: :float).descriptive_statistics
+    FastStatistics::Array2D.new(data).descriptive_statistics
   end
 
   def fast_statistics_float64(data)
-    FastStatistics::Array2D.new(data, dtype: :double).descriptive_statistics
-  end
-end
-
-class MeanBenchmark
-  def tests
-    [
-      ["Ruby (desc_stats)", :descriptive_statistics],
-      ["Ruby (custom)", :ruby],
-      ["Ruby (narray)", :narray],
-      ["Ruby (native_stats)", :ruby_native_statistics],
-      ["Fast (float32)", :fast_statistics_float32],
-      ["Fast (float64)", :fast_statistics_float64],
-      ["Fast (unpacked)", :fast_statistics_unpacked],
-    ]
-  end
-
-  def descriptive_statistics(data)
-    data.map do |arr|
-      stats = DescriptiveStatistics::Stats.new(arr)
-      stats.mean
-    end
-  end
-
-  def ruby(data)
-    data.map do |arr|
-      length = arr.length
-      sum = arr.inject(0) { |sum, x| sum + x}
-      sum / length
-    end
-  end
-
-  def narray(data)
-    data.map do |arr|
-      narr = Numo::DFloat[arr]
-      length = arr.length
-      sum = narr.sum
-      sum / length
-    end
-  end
-
-  def ruby_native_statistics(data)
-    data.map(&:mean)
-  end
-
-  def fast_statistics_float32(data)
-    FastStatistics::Array2D.new(data, dtype: :float).mean
-  end
-
-  def fast_statistics_float64(data)
-    FastStatistics::Array2D.new(data, dtype: :double).mean
-  end
-
-  def fast_statistics_unpacked(data)
-    FastStatistics::Array2D.new(data, packed: false).mean
+    FastStatistics::Array2D.new(data).descriptive_statistics
   end
 end
 

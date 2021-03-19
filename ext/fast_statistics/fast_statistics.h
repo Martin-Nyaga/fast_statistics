@@ -6,9 +6,9 @@
 #include <xmmintrin.h>
 #endif
 
-#include "array_2d.h"
-using namespace array_2d;
+#include "debug.h"
 
 #define rb_sym(str) ID2SYM(rb_intern(str))
+#define UNWRAP_DFLOAT(obj, var) TypedData_Get_Struct((obj), void*, &dfloat_wrapper, (var));
 
 #endif
