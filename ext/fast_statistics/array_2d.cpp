@@ -1,18 +1,29 @@
 #include "array_2d.h"
+#include "debug.h"
 
 namespace array_2d
 {
+
+inline int
+clamp_max(int val, int max)
+{
+  return val > max ? val : max;
+}
 
 #ifdef HAVE_XMMINTRIN_H
 template<>
 inline Packed32::PackedSize
 DFloat<float, Packed32>::pack(int start_col, int row)
 {
-  __m128 packed = _mm_set_ps(
+  PROFILE;
+
+  __m128 packed;
+  packed = _mm_set_ps(
     safe_entry(start_col + 3, row),
     safe_entry(start_col + 2, row),
     safe_entry(start_col + 1, row),
     safe_entry(start_col + 0, row));
+
   return packed;
 }
 

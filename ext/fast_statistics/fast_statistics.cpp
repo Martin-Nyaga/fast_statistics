@@ -1,4 +1,5 @@
 #include "fast_statistics.h"
+#include "debug.h"
 
 using namespace array_2d;
 
@@ -113,7 +114,7 @@ cArray2D_initialize_parse_arguments(
 }
 
 //{{{ Unpacked
-extern "C" VALUE
+VALUE
 simd_disabled(VALUE self)
 {
   return Qfalse;
@@ -168,6 +169,42 @@ cArray2D_descriptive_statistics_unpacked(VALUE self)
     DFloat64Unpacked* dfloat = ((DFloat64Unpacked*)dfloat_untyped);
     Stats* stats = dfloat->descriptive_statistics();
     return build_results_hashes(stats, dfloat->cols);
+  }
+}
+
+/*
+ * Unpacked mean computation
+ *
+ * def mean
+ */
+VALUE
+cArray2D_mean_unpacked(VALUE self)
+{
+  VALUE dtype = rb_ivar_get(self, rb_intern("@dtype"));
+
+  void* dfloat_untyped;
+  UNWRAP_DFLOAT(self, dfloat_untyped);
+
+  if (dtype == rb_sym("float")) {
+    DFloat32Unpacked* dfloat = ((DFloat32Unpacked*)dfloat_untyped);
+    double* means = dfloat->mean();
+
+    VALUE means_arr = rb_ary_new();
+    for (int i = 0; i < dfloat->cols; i++) {
+      rb_ary_push(means_arr, DBL2NUM((double)means[i]));
+    }
+    free(means);
+    return means_arr;
+  } else {
+    DFloat64Unpacked* dfloat = ((DFloat64Unpacked*)dfloat_untyped);
+    double* means = dfloat->mean();
+
+    VALUE means_arr = rb_ary_new();
+    for (int i = 0; i < dfloat->cols; i++) {
+      rb_ary_push(means_arr, DBL2NUM((double)means[i]));
+    }
+    free(means);
+    return means_arr;
   }
 }
 //}}}
@@ -243,6 +280,52 @@ cArray2D_descriptive_statistics_packed(VALUE self)
     return build_results_hashes(stats, dfloat->cols);
   }
 }
+
+/*
+ * Packed mean computation
+ *
+ * def mean
+ */
+VALUE
+cArray2D_mean_packed(VALUE self)
+{
+  PROFILE;
+
+  VALUE result;
+  VALUE packed = rb_ivar_get(self, rb_intern("@packed"));
+  if (packed == Qfalse) {
+    result = cArray2D_mean_unpacked(self);
+  }
+
+  VALUE dtype = rb_ivar_get(self, rb_intern("@dtype"));
+
+  void* dfloat_untyped;
+  UNWRAP_DFLOAT(self, dfloat_untyped);
+
+  if (dtype == rb_sym("float")) {
+    DFloat32Packed* dfloat = ((DFloat32Packed*)dfloat_untyped);
+    double* means = dfloat->mean();
+
+    VALUE means_arr = rb_ary_new();
+    for (int i = 0; i < dfloat->cols; i++) {
+      rb_ary_push(means_arr, DBL2NUM(means[i]));
+    }
+    free(means);
+    result = means_arr;
+  } else {
+    DFloat64Packed* dfloat = ((DFloat64Packed*)dfloat_untyped);
+    double* means = dfloat->mean();
+
+    VALUE means_arr = rb_ary_new();
+    for (int i = 0; i < dfloat->cols; i++) {
+      rb_ary_push(means_arr, DBL2NUM(means[i]));
+    }
+    free(means);
+    result = means_arr;
+  }
+
+  return result;
+}
 #endif
 
 extern "C" void
@@ -260,6 +343,7 @@ Init_fast_statistics(void)
     "descriptive_statistics",
     RUBY_METHOD_FUNC(cArray2D_descriptive_statistics_packed),
     0);
+  rb_define_method(cArray2D, "mean", RUBY_METHOD_FUNC(cArray2D_mean_packed), 0);
 #else
   rb_define_singleton_method(mFastStatistics, "simd_enabled?", RUBY_METHOD_FUNC(simd_disabled), 0);
   rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize_unpacked), -1);

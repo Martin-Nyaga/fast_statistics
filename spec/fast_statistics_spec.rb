@@ -46,6 +46,12 @@ describe FastStatistics::Array2D do
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
 
+    it "#mean calculates the mean" do
+      means = subject.mean
+      expected_means = expected_stats.map { |stat| stat[:mean] }
+      expect(means).to eq(expected_means)
+    end
+
     context "with 1 variable" do
       subject { FastStatistics::Array2D.new(data.first(1), dtype: :double, packed: true) }
       it "#descriptive_statistics works" do
@@ -72,6 +78,14 @@ describe FastStatistics::Array2D do
       expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(threshold)
     end
 
+    it "#mean calculates the mean" do
+      means = subject.mean
+      expected_means = expected_stats.map { |stat| stat[:mean] }
+      means.zip(expected_means) do |(actual, expected)|
+        expect(actual).to be_within(threshold).of(expected)
+      end
+    end
+
     context "with 1 variable" do
       subject { FastStatistics::Array2D.new(data.first(1), dtype: :float, packed: true) }
       it "#descriptive_statistics works" do
@@ -96,6 +110,12 @@ describe FastStatistics::Array2D do
       stats = subject.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
+
+    it "#mean calculates the mean" do
+      means = subject.mean
+      expected_means = expected_stats.map { |stat| stat[:mean] }
+      expect(means).to eq(expected_means)
+    end
   end
 
   context "with explicit initialization (dtype: float, packed: false)" do
@@ -105,6 +125,14 @@ describe FastStatistics::Array2D do
     it "#descriptive_statistics works" do
       stats = subject.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats).within_threshold(threshold)
+    end
+
+    it "#mean calculates the mean" do
+      means = subject.mean
+      expected_means = expected_stats.map { |stat| stat[:mean] }
+      means.zip(expected_means) do |(actual, expected)|
+        expect(actual).to be_within(threshold).of(expected)
+      end
     end
   end
 

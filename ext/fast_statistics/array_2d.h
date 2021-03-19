@@ -32,12 +32,15 @@ struct Stats {
 #ifdef HAVE_XMMINTRIN_H
 struct Packed32 {
   typedef __m128 PackedSize;
+  typedef float PackedSizeSingle;
 };
 struct Packed64 {
   typedef __m128d PackedSize;
+  typedef double PackedSizeSingle;
 };
 struct Unpacked {
   typedef double PackedSize;
+  typedef double PackedSizeSingle;
 };
 #endif
 
@@ -50,6 +53,7 @@ class DFloat
   inline double sum(T* col);
   inline double standard_deviation(T* col, T mean);
   T safe_entry(int col, int row);
+  T entry(int col, int row);
   void sort_columns(int start_col, int pack_size);
 
 #ifdef HAVE_XMMINTRIN_H
@@ -65,7 +69,9 @@ public:
 
   DFloat<T, S>(int cols, int rows, T* entries);
   DFloat<T, S>(VALUE ruby_arr);
+
   Stats* descriptive_statistics();
+  double* mean();
 
 #ifdef HAVE_XMMINTRIN_H
   Stats* descriptive_statistics_simd();
@@ -180,14 +186,37 @@ DFloat<T, S>::descriptive_statistics()
 }
 
 template<typename T, typename S>
+inline double*
+DFloat<T, S>::mean()
+{
+  double* means = (double*)malloc(cols * sizeof(double));
+
+  for (int col = 0; col < cols; col++) {
+    T* col_arr = base_ptr(col);
+
+    double total = sum(col_arr);
+    means[col] = total / (T)rows;
+  }
+
+  return means;
+}
+
+template<typename T, typename S>
 inline T
 DFloat<T, S>::safe_entry(int col, int row)
 {
-  if (col < cols && row < rows) {
+  if (col < cols) {
     return *(base_ptr(col) + row);
   } else {
     return 0;
   }
+}
+
+template<typename T, typename S>
+inline T
+DFloat<T, S>::entry(int col, int row)
+{
+  return *(base_ptr(col) + row);
 }
 
 #ifdef HAVE_XMMINTRIN_H
