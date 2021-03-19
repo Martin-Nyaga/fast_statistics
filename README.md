@@ -1,4 +1,5 @@
 # FastStatistics
+![Build Status](https://travis-ci.com/Martin-Nyaga/fast_statistics.svg?branch=master)
 
 Fast computation of descriptive statistics in ruby using native code and SIMD.
 
