@@ -41,6 +41,36 @@ You can compute descriptive statistics as follows:
 FastStatistics::Array2D.new(data).descriptive_statistics
 ```
 
+## Benchmark
+
+You can run the benchmark with `rake benchmark`.
+
+```
+Comparing calculated statistics with 10 values for 8 variables...
+Test passed, results are equal to 6 decimal places!
+
+Benchmarking with 100,000 values for 12 variables...
+Warming up --------------------------------------
+   Ruby (desc_stats)     1.000  i/100ms
+       Ruby (custom)     1.000  i/100ms
+       Ruby (narray)     1.000  i/100ms
+ Ruby (native_stats)     1.000  i/100ms
+                Fast     3.000  i/100ms
+Calculating -------------------------------------
+   Ruby (desc_stats)      0.444  (± 0.0%) i/s -      3.000  in   6.764293s
+       Ruby (custom)      2.281  (± 0.0%) i/s -     12.000  in   5.262760s
+       Ruby (narray)      4.036  (± 0.0%) i/s -     21.000  in   5.210366s
+ Ruby (native_stats)      5.791  (± 0.0%) i/s -     29.000  in   5.013041s
+                Fast     33.050  (± 3.0%) i/s -    168.000  in   5.088618s
+
+Comparison:
+                Fast:       33.0 i/s
+ Ruby (native_stats):        5.8 i/s - 5.71x  (± 0.00) slower
+       Ruby (narray):        4.0 i/s - 8.19x  (± 0.00) slower
+       Ruby (custom):        2.3 i/s - 14.49x  (± 0.00) slower
+   Ruby (desc_stats):        0.4 i/s - 74.51x  (± 0.00) slower
+```
+
 <!-- TODO: Development
 ## Development
 
