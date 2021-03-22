@@ -17,8 +17,8 @@ end
 
 # Benchmark
 task :benchmark => [:clean, :compile] do 
-  require_relative "./benchmark/bench"
-  bench = FastStatistics::Benchmark.new(subject: DescriptiveStatsBenchmark)
+  require_relative "./benchmark/benchmark"
+  bench = DescriptiveStatsBenchmark
   bench.compare_results!
   bench.benchmark_ips!
 end

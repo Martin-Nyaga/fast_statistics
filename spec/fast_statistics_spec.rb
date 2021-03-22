@@ -34,7 +34,6 @@ describe FastStatistics::Array2D do
 
     it "#descriptive_statistics works" do
       stats = subject.descriptive_statistics
-      stats.each {|stat| puts stat}
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
   end
