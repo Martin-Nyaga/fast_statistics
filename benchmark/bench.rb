@@ -21,20 +21,30 @@ module Helpers
   end
 end
 
-class DescriptiveStatsBenchmark
-  include Helpers
+class BaseBenchmark
+  class << self
+    include Helpers
 
-  def tests
-    [
-      ["Ruby (desc_stats)", :descriptive_statistics],
-      ["Ruby (custom)", :ruby],
-      ["Ruby (narray)", :narray],
-      ["Ruby (native_stats)", :ruby_native_statistics],
-      ["Fast", :fast_statistics_float32],
-    ]
+    @@tests = []
+
+    def benchmark(name, &block)
+      @@tests.push(TestCase.new(name, block))
+    end
+
+    def tests
+      @@tests
+    end
+
+    TestCase = Struct.new(:name, :block) do
+      def run(data)
+        block.call(data)
+      end
+    end
   end
+end
 
-  def descriptive_statistics(data)
+class DescriptiveStatsBenchmark < BaseBenchmark
+  benchmark "descriptive_statistics" do |data|
     data.map do |arr|
       stats = DescriptiveStatistics::Stats.new(arr)
       {
@@ -49,7 +59,7 @@ class DescriptiveStatsBenchmark
     end
   end
 
-  def ruby(data)
+  benchmark "Custom ruby" do |data|
     data.map do |arr|
       arr.sort!
 
@@ -76,7 +86,7 @@ class DescriptiveStatsBenchmark
     end
   end
 
-  def narray(data)
+  benchmark "narray" do |data|
     data.map do |arr|
       narr = Numo::DFloat[arr]
       narr.sort
@@ -86,8 +96,7 @@ class DescriptiveStatsBenchmark
       median = percentile(50, narr, length)
       q1 = percentile(25, narr, length)
       q3 = percentile(75, narr, length)
-      sum = narr.sum
-      mean = sum / length
+      mean = narr.mean
       variance = 0
       narr.each { |x| variance += ((x - mean) ** 2) / length }
       standard_deviation = Math.sqrt(variance)
@@ -103,7 +112,7 @@ class DescriptiveStatsBenchmark
     end
   end
 
-  def ruby_native_statistics(data)
+  benchmark "ruby_native_statistics" do |data|
     data.map do |arr|
       {
         mean: arr.mean,
@@ -117,11 +126,7 @@ class DescriptiveStatsBenchmark
     end
   end
 
-  def fast_statistics_float32(data)
-    FastStatistics::Array2D.new(data).descriptive_statistics
-  end
-
-  def fast_statistics_float64(data)
+  benchmark "FastStatistics" do |data|
     FastStatistics::Array2D.new(data).descriptive_statistics
   end
 end
@@ -133,13 +138,16 @@ module FastStatistics
       @subject = subject
     end
 
-    def compare_results!(comparison_count: 10, precision: 6)
-      data = generate_data(comparison_count)
-      puts("Comparing calculated statistics with #{format_number(comparison_count)} values for #{data.length} variables...")
+    def compare_results!(data_points: 10, precision: 6)
+      data = generate_data(data_points)
+      puts("Comparing calculated statistics with #{format_number(data_points)} values for #{data.length} variables...")
 
-      test_results = subject.tests.map do |(name, method)|
-        subject.send(method, data)
-      end
+      test_results = subject.tests.map { |test| test.run(data) }
+
+      # Uncomment to print results
+      # test_results.zip(subject.tests) do |results, test|
+      #   print_results(test.name, results, precision)
+      # end
 
       if assert_values_within_delta(test_results, 10 ** -precision)
         puts("Test passed, results are equal to #{precision} decimal places!")
@@ -151,29 +159,29 @@ module FastStatistics
       exit(1)
     end
 
-    def benchmark!(benchmark_count: 100_000, variables_count: 12)
-      data = generate_data(benchmark_count, variables_count)
-      puts("Benchmarking with #{format_number(benchmark_count)} values for #{data.length} variables...")
+    def benchmark!(data_points: 100_000, variables_count: 12)
+      data = generate_data(data_points, variables_count)
+      puts("Benchmarking with #{format_number(data_points)} values for #{data.length} variables...")
 
       ::Benchmark.bmbm do |x|
-        subject.tests.each do |(name, method)|
-          x.report(name) do
-          subject.send(method, data)
-        end
+        subject.tests.each do |test|
+          x.report(test.name) do
+            test.run(data)
+          end
         end
       end
     end
 
-    def benchmark_ips!(benchmark_count: 100_000, variables_count: 12)
-      data = generate_data(benchmark_count, variables_count)
-      puts("Benchmarking with #{format_number(benchmark_count)} values for #{data.length} variables...")
+    def benchmark_ips!(data_points: 100_000, variables_count: 12)
+      data = generate_data(data_points, variables_count)
+      puts("Benchmarking with #{format_number(data_points)} values for #{data.length} variables...")
 
       ::Benchmark.ips do |x|
-        subject.tests.each do |(name, method)|
-          x.report(name) do
-          subject.send(method, data)
-        end
-        x.compare!
+        subject.tests.each do |test|
+          x.report(test.name) do
+            test.run(data)
+          end
+          x.compare!
         end
       end
     end

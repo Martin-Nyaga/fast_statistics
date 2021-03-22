@@ -87,22 +87,17 @@ simd_disabled(VALUE self)
   return Qfalse;
 }
 
+/*
+ * def initialize(arrays)
+ */
 VALUE
-cArray2D_initialize_data_unpacked(VALUE self, VALUE arrays)
+cArray2D_initialize_unpacked(VALUE self, VALUE arrays)
 {
   // Initialize dfloat structure to store Dfloat in type wrapper
   void* dfloat;
   UNWRAP_DFLOAT(self, dfloat);
   new (dfloat) DFloat(arrays);
   return self;
-}
-
-VALUE
-cArray2D_initialize_unpacked(VALUE argc, VALUE* argv, VALUE self)
-{
-  VALUE arrays;
-  cArray2D_initialize_parse_arguments(argc, argv, &arrays);
-  return cArray2D_initialize_data_unpacked(self, arrays);
 }
 
 /*
@@ -130,8 +125,11 @@ simd_enabled(VALUE self)
   return Qtrue;
 }
 
+/*
+ * def initialize(arrays)
+ */
 VALUE
-cArray2D_initialize_data_packed(VALUE self, VALUE arrays)
+cArray2D_initialize_packed(VALUE self, VALUE arrays)
 {
   // Initialize dfloat structure to store Dfloat in type wrapper
   void* dfloat;
@@ -140,17 +138,6 @@ cArray2D_initialize_data_packed(VALUE self, VALUE arrays)
   new (dfloat) DFloat(arrays);
 
   return self;
-}
-
-/*
- * def initialize(arrays)
- */
-VALUE
-cArray2D_initialize_packed(VALUE argc, VALUE* argv, VALUE self)
-{
-  VALUE arrays;
-  cArray2D_initialize_parse_arguments(argc, argv, &arrays);
-  return cArray2D_initialize_data_packed(self, arrays);
 }
 
 /*
@@ -179,7 +166,7 @@ Init_fast_statistics(void)
 
 #ifdef HAVE_XMMINTRIN_H
   rb_define_singleton_method(mFastStatistics, "simd_enabled?", RUBY_METHOD_FUNC(simd_enabled), 0);
-  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize_packed), -1);
+  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize_packed), 1);
   rb_define_method(
     cArray2D,
     "descriptive_statistics",
@@ -187,7 +174,7 @@ Init_fast_statistics(void)
     0);
 #else
   rb_define_singleton_method(mFastStatistics, "simd_enabled?", RUBY_METHOD_FUNC(simd_disabled), 0);
-  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize_unpacked), -1);
+  rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize_unpacked), 1);
   rb_define_method(
     cArray2D,
     "descriptive_statistics",
