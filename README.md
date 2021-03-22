@@ -1,7 +1,13 @@
 # FastStatistics
 ![Build Status](https://travis-ci.com/Martin-Nyaga/fast_statistics.svg?branch=master)
 
-Fast computation of descriptive statistics in ruby using native code and SIMD.
+A high performance native ruby extension (written in C++) for computation of
+descriptive statistics.
+
+## Overview
+This gem provides fast computation of descriptive statistics (min, max,
+mean, median, q1, q3, standard_deviation) for a multivariate dataset
+(represented as a 2D array) in ruby.
 
 ## Installation
 
@@ -21,7 +27,7 @@ Or install it yourself as:
 
 ## Usage
 
-Given you have some 2-dimensional data:
+Given you have some multivariate (2-dimensional) data:
 ```ruby
 data = [
   [0.6269, 0.3783, 0.1477, 0.2374],
@@ -35,13 +41,55 @@ data = [
 ]
 ```
 
-You can compute descriptive statistics as follows:
+You can compute descriptive statistics for all the inner arrays as follows:
 
 ```ruby
 FastStatistics::Array2D.new(data).descriptive_statistics
+#=> 
+[{:min=>0.1477,
+  :max=>0.6269,
+  :mean=>0.347575,
+  :median=>0.30785,
+  :q1=>0.214975,
+  :q3=>0.44045,
+  :standard_deviation=>0.18100761551658537},
+ {:min=>0.1055,
+  :max=>0.8,
+  :mean=>0.38217500000000004,
+  :median=>0.3116,
+  :q1=>0.1781,
+  :q3=>0.515675,
+  :standard_deviation=>0.26691825878909076},
+ ...,
+ {:min=>0.3918,
+  :max=>0.8546,
+  :mean=>0.639025,
+  :median=>0.6548499999999999,
+  :q1=>0.536025,
+  :q3=>0.75785,
+  :standard_deviation=>0.1718318709523935}]
 ```
 
-## Benchmark
+## Implementation Notes
+
+The following factors combined help achieve very high performance:
+
+- It is written in C++ and so can leverage the speed of native execution. 
+- It minimises the amount of work done by calculating the statistics in as few
+  operations as possible (1 sort + 2 loops). Most native alternatives don't
+  provide a built in way to get all these statistics at once, and so typically
+  require more loops through the data.
+- This gem uses explicit 128-bit-wide SIMD intrinsics (on platforms where they
+  are available) to parallelize computations for 2 variables at the
+  same time where possible giving an additional speed advantage.
+
+## Benchmarks
+
+The alternatives compared are:
+- descriptive_statistics (gem)
+- ruby-native-statistics (gem)
+- Narray (gem)
+- Hand-written ruby (using the same algorithm implemented in C++ in this gem)
 
 You can run the benchmark with `rake benchmark`.
 
