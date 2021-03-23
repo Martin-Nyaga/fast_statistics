@@ -6,8 +6,8 @@ descriptive statistics.
 
 ## Overview
 This gem provides fast computation of descriptive statistics (min, max, mean,
-median, 1st and 3rd quartiles, population standard deviation) for a
-multivariate dataset (represented as a 2D array) in ruby.
+median, 1st and 3rd quartiles, population standard deviation) for a multivariate
+dataset (represented as a 2D array) in ruby.
 
 ## Installation
 
@@ -73,21 +73,6 @@ FastStatistics::Array2D.new(data).descriptive_statistics
 #   :standard_deviation=>0.1718318709523935}]
 ```
 
-## Implementation Notes
-
-The following factors combined help this gem achieve very high performance
-compared to available alternatives and up to 15x speed compared to hand-written
-computations in ruby:
-
-- It is written in C++ and so can leverage the speed of native execution. 
-- It minimises the number of operations by calculating the statistics in as few
-  operations as possible (1 sort + 2 loops). Most native alternatives don't
-  provide a built in way to get all these statistics at once, and so typically
-  require looping through the data more times than is necessary.
-- This gem uses explicit 128-bit-wide SIMD intrinsics (on platforms where they
-  are available) to parallelize computations for 2 variables at the
-  same time where possible giving an additional speed advantage.
-
 ## Benchmarks
 
 Some alternatives compared are:
@@ -95,6 +80,10 @@ Some alternatives compared are:
 - [ruby-native-statistics](https://github.com/corybuecker/ruby-native-statistics)
 - [Numo::NArray](https://github.com/ruby-numo/numo-narray)
 - Hand-written ruby (using the same algorithm implemented in C++ in this gem)
+
+Benchmarked on my machine (8th gen i7, sse2), this gem is **~11x**
+faster than an optimal algorithm in hand-written ruby, and **~4.7x** faster than
+the next fastest available native ruby extension (that I tested).
 
 You can reivew the benchmark implementations at `benchmark/benchmark.rb` and run the
 benchmark with `rake benchmark`. 
@@ -125,6 +114,44 @@ ruby_native_statistics:    6.0 i/s - 4.77x  (± 0.00) slower
            Custom ruby:    2.5 i/s - 11.29x  (± 0.00) slower
 descriptive_statistics:    0.5 i/s - 60.09x  (± 0.00) slower
 ```
+
+## Background & Implementation 
+
+The inspiration for this gem was a use-case in an analytics ruby application,
+where we frequently had to compute descriptive statistics for fairly large
+multivariate datasets. Calculations in ruby were not fast enough, so I
+first explored performing the computations natively in [this
+repository](https://github.com/Martin-Nyaga/ruby-ffi-simd). The results were
+promising, so I decided to package it as a ruby gem.
+
+The following factors combined help this gem achieve high performance compared
+to available native alternatives and hand-written computations in ruby:
+
+- It is written in C++ and so can leverage the speed of native execution. 
+- It minimises the number of operations by calculating the statistics in as few
+  operations as possible (1 sort + 2 loops). Most native alternatives don't
+  provide a built in way to get all these statistics at once. Instead, they only
+  provide APIs where you make single calls for individual statistics. Through
+  such an API, building this set of summary statistics typically ends up looping
+  through the data more times than is necessary.
+- This gem uses explicit 128-bit-wide SIMD intrinsics (on platforms where they
+  are available) to parallelize computations for 2 variables at the same time
+  where possible, giving an additional speed advantage while still being single
+  threaded.
+
+That said, there are some limitations in the current implementation:
+- The variables in the 2D array must all have the same number of data points
+  (inner arrays must have the same length) and contain only numbers (i.e. no
+  `nil` awareness is present).
+- There is currently no API to calculate single statistics (although this may be
+  made available in the future).
+
+This is an early release and should be considered unstable, at least until I'm
+confident in the stability & performance in a real world application setting
+(let me know in [the Welcome discussion
+thread](https://github.com/Martin-Nyaga/fast_statistics/discussions/1) if you
+use it!). I'm also not really an expert in C++, so reviews & suggestions are
+welcome.
 
 ## Contributing
 
