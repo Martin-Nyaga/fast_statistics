@@ -70,14 +70,16 @@ cArray2D_alloc(VALUE self)
   return TypedData_Wrap_Struct(self, &dfloat_wrapper, dfloat);
 }
 
-void
-cArray2D_initialize_parse_arguments(VALUE argc, VALUE* argv, VALUE* arrays)
+inline bool
+cArray2D_check_array_args(VALUE arrays)
 {
-  rb_scan_args(argc, argv, "1", arrays);
-
-  // Typecheck 2d array
-  Check_Type(*arrays, T_ARRAY);
-  Check_Type(rb_ary_entry(*arrays, 0), T_ARRAY);
+  if (TYPE(arrays) == T_ARRAY && TYPE(rb_ary_entry(arrays, 0)) == T_ARRAY) {
+    return true;
+  } else {
+    Check_Type(arrays, T_ARRAY);
+    Check_Type(rb_ary_entry(arrays, 0), T_ARRAY);
+    return false;
+  }
 }
 
 //{{{ Unpacked
@@ -93,10 +95,13 @@ simd_disabled(VALUE self)
 VALUE
 cArray2D_initialize_unpacked(VALUE self, VALUE arrays)
 {
-  // Initialize dfloat structure to store Dfloat in type wrapper
-  void* dfloat;
-  UNWRAP_DFLOAT(self, dfloat);
-  new (dfloat) DFloat(arrays);
+  // Typecheck 2d array
+  if (cArray2D_check_array_args(arrays)) {
+    // Initialize dfloat structure to store Dfloat in type wrapper
+    void* dfloat;
+    UNWRAP_DFLOAT(self, dfloat);
+    new (dfloat) DFloat(arrays);
+  }
   return self;
 }
 
@@ -131,12 +136,13 @@ simd_enabled(VALUE self)
 VALUE
 cArray2D_initialize_packed(VALUE self, VALUE arrays)
 {
-  // Initialize dfloat structure to store Dfloat in type wrapper
-  void* dfloat;
-  UNWRAP_DFLOAT(self, dfloat);
-
-  new (dfloat) DFloat(arrays);
-
+  // Typecheck 2d array
+  if (cArray2D_check_array_args(arrays)) {
+    // Initialize dfloat structure to store Dfloat in type wrapper
+    void* dfloat;
+    UNWRAP_DFLOAT(self, dfloat);
+    new (dfloat) DFloat(arrays);
+  }
   return self;
 }
 

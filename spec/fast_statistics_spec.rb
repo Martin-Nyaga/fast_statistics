@@ -54,6 +54,13 @@ describe FastStatistics::Array2D do
     end
   end
 
+  context "with incorrect initialization" do
+    it "should throw a type error" do
+      expect { FastStatistics::Array2D.new([1, 2, 3]) }.to raise_error(TypeError)
+      expect { FastStatistics::Array2D.new("hello world") }.to raise_error(TypeError)
+    end
+  end
+
   context "simd_enabled?" do
     it "allows to check if simd is enabled" do
       expect { FastStatistics.simd_enabled? }.not_to raise_error
