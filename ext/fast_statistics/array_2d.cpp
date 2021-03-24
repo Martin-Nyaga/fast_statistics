@@ -6,21 +6,32 @@ namespace array_2d
 
 DFloat::~DFloat()
 {
-  free(entries);
-  delete[] stats;
+  if (data_initialized) {
+    free(entries);
+    delete[] stats;
+  }
 }
 
-DFloat::DFloat(VALUE arrays)
+DFloat::DFloat(VALUE arrays, bool initialize_data)
 {
-  cols = rb_array_len(arrays);
-  rows = rb_array_len(rb_ary_entry(arrays, 0));
-  entries = (double*)malloc(cols * rows * sizeof(double));
-  stats = NULL;
+  data_initialized = initialize_data;
 
-  for (int j = 0; j < cols; j++) {
-    for (int i = 0; i < rows; i++) {
-      entries[j * rows + i] = (double)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, j), i));
+  if (initialize_data) {
+    cols = rb_array_len(arrays);
+    rows = rb_array_len(rb_ary_entry(arrays, 0));
+    entries = (double*)malloc(cols * rows * sizeof(double));
+    stats = new Stats[cols];
+
+    for (int j = 0; j < cols; j++) {
+      for (int i = 0; i < rows; i++) {
+        entries[j * rows + i] = (double)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, j), i));
+      }
     }
+  } else {
+    cols = 0;
+    rows = 0;
+    entries = NULL;
+    stats = NULL;
   }
 }
 
@@ -68,7 +79,7 @@ DFloat::standard_deviation(double* col, double mean)
 Stats*
 DFloat::descriptive_statistics()
 {
-  stats = new Stats[cols];
+  if (!data_initialized) return stats;
 
   for (int col = 0; col < cols; col++) {
     Stats var_stats;
@@ -137,6 +148,7 @@ Stats*
 DFloat::descriptive_statistics_packed()
 {
   stats = new Stats[cols];
+  if (!data_initialized) return stats;
   const int simd_pack_size = 2;
 
   __m128d lengths = _mm_set_pd1((double)rows);

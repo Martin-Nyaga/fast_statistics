@@ -44,10 +44,11 @@ class DFloat
 public:
   int cols;
   int rows;
+  bool data_initialized;
   double* entries;
   Stats* stats;
 
-  DFloat(VALUE ruby_arr);
+  DFloat(VALUE ruby_arr, bool initialize_data);
   ~DFloat();
 
   Stats* descriptive_statistics();
