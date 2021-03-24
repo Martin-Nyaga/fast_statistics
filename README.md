@@ -1,4 +1,4 @@
-# FastStatistics
+# Fast Statistics :rocket:
 ![Build Status](https://travis-ci.com/Martin-Nyaga/fast_statistics.svg?branch=master)
 
 A high performance native ruby extension (written in C++) for computation of
@@ -8,6 +8,10 @@ descriptive statistics.
 This gem provides fast computation of descriptive statistics (min, max, mean,
 median, 1st and 3rd quartiles, population standard deviation) for a multivariate
 dataset (represented as a 2D array) in ruby.
+
+It is **~11x** faster than an optimal algorithm in hand-written ruby, and
+**~4.7x** faster than the next fastest available ruby gem or native extension
+(see [benchmarks](#benchmarks) below).
 
 ## Installation
 
@@ -81,10 +85,6 @@ Some alternatives compared are:
 - [Numo::NArray](https://github.com/ruby-numo/numo-narray)
 - Hand-written ruby (using the same algorithm implemented in C++ in this gem)
 
-Benchmarked on my machine (8th gen i7, sse2), this gem is **~11x**
-faster than an optimal algorithm in hand-written ruby, and **~4.7x** faster than
-the next fastest available native ruby extension (that I tested).
-
 You can reivew the benchmark implementations at `benchmark/benchmark.rb` and run the
 benchmark with `rake benchmark`. 
 
@@ -124,6 +124,15 @@ first explored performing the computations natively in [this
 repository](https://github.com/Martin-Nyaga/ruby-ffi-simd). The results were
 promising, so I decided to package it as a ruby gem.
 
+**Note**: This is an early release and should be considered unstable, at least
+until I'm confident in the stability & performance in a real world application
+setting.  Feel free to test it out in non-critical scenarios/environments (let
+me know in [this discussion
+thread](https://github.com/Martin-Nyaga/fast_statistics/discussions/1) or by
+filing an issue if you use it!). I'm also not really an expert in C++, so
+reviews & suggestions are welcome.
+
+### How is the performance achieved? 
 The following factors combined help this gem achieve high performance compared
 to available native alternatives and hand-written computations in ruby:
 
@@ -139,19 +148,13 @@ to available native alternatives and hand-written computations in ruby:
   where possible, giving an additional speed advantage while still being single
   threaded.
 
-That said, there are some limitations in the current implementation:
+### Limitations of the current implementation
+The speed gains notwithstanding, there are some limitations in the current implementation:
 - The variables in the 2D array must all have the same number of data points
   (inner arrays must have the same length) and contain only numbers (i.e. no
   `nil` awareness is present).
 - There is currently no API to calculate single statistics (although this may be
   made available in the future).
-
-This is an early release and should be considered unstable, at least until I'm
-confident in the stability & performance in a real world application setting
-(let me know in [the Welcome discussion
-thread](https://github.com/Martin-Nyaga/fast_statistics/discussions/1) if you
-use it!). I'm also not really an expert in C++, so reviews & suggestions are
-welcome.
 
 ## Contributing
 
