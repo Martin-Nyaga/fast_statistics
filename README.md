@@ -124,13 +124,10 @@ first explored performing the computations natively in [this
 repository](https://github.com/Martin-Nyaga/ruby-ffi-simd). The results were
 promising, so I decided to package it as a ruby gem.
 
-**Note**: This is an early release and should be considered unstable, at least
-until I'm confident in the stability & performance in a real world application
-setting.  Feel free to test it out in non-critical scenarios/environments (let
-me know in [this discussion
-thread](https://github.com/Martin-Nyaga/fast_statistics/discussions/1) or by
-filing an issue if you use it!). I'm also not really an expert in C++, so
-reviews & suggestions are welcome.
+I've now ran this in production for some time, and I'm quite happy with it. Feel
+free to let me know in [this discussion
+thread](https://github.com/Martin-Nyaga/fast_statistics/discussions/1) if you
+use it, or open an issue if you run into any problems.
 
 ### How is the performance achieved? 
 The following factors combined help this gem achieve high performance compared
