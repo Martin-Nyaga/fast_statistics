@@ -8,6 +8,9 @@ if ENV["DEBUG"]
   $defs << "-DDEBUG"
 end
 
+# Compile with C++11
+$CXXFLAGS += " -std=c++11 "
+
 # Disable warnings
 [
   / -Wdeclaration-after-statement/,
