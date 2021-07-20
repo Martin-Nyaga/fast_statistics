@@ -32,7 +32,7 @@ build_results_hashes(Stats* stats, int num_variables)
     rb_hash_aset(h_result, s_q1, DBL2NUM(var_stats.q1));
     rb_hash_aset(h_result, s_q3, DBL2NUM(var_stats.q3));
     rb_hash_aset(h_result, s_standard_deviation, DBL2NUM(var_stats.standard_deviation));
-    rb_hash_aset(h_result, s_skew_median_pearson, DBL2NUM(var_stats.s_skew_median_pearson));
+    rb_hash_aset(h_result, s_skew_median_pearson, DBL2NUM(var_stats.skew_median_pearson));
 
     rb_ary_push(a_results, h_result);
   }
