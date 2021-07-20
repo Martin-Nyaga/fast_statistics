@@ -19,10 +19,11 @@ struct Stats {
   double q1;
   double q3;
   double standard_deviation;
+  double skew_median_pearson;
 
   Stats()
   {
-    min = 0.0, max = 0.0, mean = 0.0, median = 0.0, q1 = 0.0, q3 = 0.0, standard_deviation = 0.0;
+    min = 0.0, max = 0.0, mean = 0.0, median = 0.0, q1 = 0.0, q3 = 0.0, standard_deviation = 0.0, skew_median_pearson = 0.0;
   };
 };
 
