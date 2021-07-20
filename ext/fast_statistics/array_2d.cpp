@@ -95,6 +95,7 @@ DFloat::descriptive_statistics()
     double total = sum(col_arr);
     var_stats.mean = total / (double)rows;
     var_stats.standard_deviation = standard_deviation(col_arr, var_stats.mean);
+    var_stats.skew_median_pearson = 3*(var_stats.mean - var_stats.median) / var_stats.standard_deviation;
 
     stats[col] = var_stats;
   }
@@ -187,6 +188,7 @@ DFloat::descriptive_statistics_packed()
         var_stats.q1 = MM_GET_INDEX(q1s, simd_slot_index);
         var_stats.q3 = MM_GET_INDEX(q3s, simd_slot_index);
         var_stats.standard_deviation = MM_GET_INDEX(stdevs, simd_slot_index);
+        var_stats.skew_median_pearson = 3*(var_stats.mean - var_stats.median) / var_stats.standard_deviation;
 
         stats[col + simd_slot_index] = var_stats;
       }
