@@ -11,13 +11,15 @@ end
 # Compile with C++11
 $CXXFLAGS += " -std=c++11 "
 
-# Disable warnings
-[
-  / -Wdeclaration-after-statement/,
-  / -Wimplicit-int/,
-  / -Wimplicit-function-declaration/,
-].each do |flag|
-  CONFIG["warnflags"].slice!(flag)
+extension_name = "fast_statistics/fast_statistics"
+
+dir_config(extension_name)
+
+$srcs = Dir.glob("#{$srcdir}/**/*.cpp").map { |path| File.basename(path) }
+Dir.glob("#{$srcdir}/*/") do |path|
+  dir =  File.basename(path)
+  $VPATH << "$(srcdir)/#{dir}"
+  $INCFLAGS << " -I$(srcdir)/#{dir}"
 end
 
 have_header("xmmintrin.h")
