@@ -3,6 +3,7 @@
 
 #include "dfloat.h"
 #include "fast_statistics.h"
-VALUE
-build_results_hashes(Stats* stats, int num_variables);
+
+#define rb_sym(str) ID2SYM(rb_intern(str))
+
 #endif

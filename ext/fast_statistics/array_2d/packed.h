@@ -4,20 +4,16 @@
 #include <ruby.h>
 
 #include "dfloat.h"
-#include "utils.h"
 
-namespace array_2d
-{
+namespace array_2d {
 
 extern const rb_data_type_t dfloat_wrapper;
 
-namespace packed
-{
+namespace packed {
 
-VALUE
-descriptive_statistics(VALUE self);
+VALUE descriptive_statistics(VALUE self);
 
-}
-}
+} // namespace packed
+} // namespace array_2d
 
 #endif

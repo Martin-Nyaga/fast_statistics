@@ -1,21 +1,19 @@
 #include "dfloat.h"
 
-DFloat::~DFloat()
-{
+DFloat::~DFloat() {
   if (data_initialized) {
     free(entries);
     delete[] stats;
   }
 }
 
-DFloat::DFloat(VALUE arrays, bool initialize_data)
-{
+DFloat::DFloat(VALUE arrays, bool initialize_data) {
   data_initialized = initialize_data;
 
   if (initialize_data) {
     cols = rb_array_len(arrays);
     rows = rb_array_len(rb_ary_entry(arrays, 0));
-    entries = (double*)malloc(cols * rows * sizeof(double));
+    entries = (double *)malloc(cols * rows * sizeof(double));
     stats = new Stats[cols];
 
     for (int j = 0; j < cols; j++) {
@@ -31,15 +29,9 @@ DFloat::DFloat(VALUE arrays, bool initialize_data)
   }
 }
 
-inline void
-DFloat::sort(double* col)
-{
-  std::sort(col, col + rows);
-}
+inline void DFloat::sort(double *col) { std::sort(col, col + rows); }
 
-inline double
-DFloat::percentile(double* col, double pct)
-{
+inline double DFloat::percentile(double *col, double pct) {
   if (pct == 1.0) return col[rows - 1];
   double rank = pct * (double)(rows - 1);
   int floored_rank = floor(rank);
@@ -48,9 +40,7 @@ DFloat::percentile(double* col, double pct)
   return lower + (upper - lower) * (rank - floored_rank);
 }
 
-inline double
-DFloat::sum(double* col)
-{
+inline double DFloat::sum(double *col) {
   double sum = 0.0;
   for (int row = 0; row < rows; row++) {
     sum += col[row];
@@ -58,9 +48,7 @@ DFloat::sum(double* col)
   return sum;
 }
 
-inline double
-DFloat::standard_deviation(double* col, double mean)
-{
+inline double DFloat::standard_deviation(double *col, double mean) {
   double variance = 0.0f;
   for (int i = 0; i < rows; i++) {
     double value = col[i];
@@ -72,14 +60,12 @@ DFloat::standard_deviation(double* col, double mean)
   return result;
 }
 
-Stats*
-DFloat::descriptive_statistics()
-{
+Stats *DFloat::descriptive_statistics() {
   if (!data_initialized) return stats;
 
   for (int col = 0; col < cols; col++) {
     Stats var_stats;
-    double* col_arr = base_ptr(col);
+    double *col_arr = base_ptr(col);
 
     sort(col_arr);
 
@@ -99,9 +85,7 @@ DFloat::descriptive_statistics()
 }
 
 #ifdef HAVE_XMMINTRIN_H
-inline double
-DFloat::safe_entry(int col, int row)
-{
+inline double DFloat::safe_entry(int col, int row) {
   if (col < cols) {
     return *(base_ptr(col) + row);
   } else {
@@ -109,27 +93,21 @@ DFloat::safe_entry(int col, int row)
   }
 }
 
-inline void
-DFloat::sort_columns(int start_col, int pack_size)
-{
+inline void DFloat::sort_columns(int start_col, int pack_size) {
   for (int i = 0; i < pack_size; i++) {
     if ((start_col + i) < cols) {
-      double* col_arr = base_ptr(start_col + i);
+      double *col_arr = base_ptr(start_col + i);
       sort(col_arr);
     }
   }
 }
 
-inline __m128d
-DFloat::pack(int start_col, int row)
-{
+inline __m128d DFloat::pack(int start_col, int row) {
   __m128d packed = _mm_set_pd(safe_entry(start_col + 1, row), safe_entry(start_col + 0, row));
   return packed;
 }
 
-inline __m128d
-DFloat::percentile_packed(int start_col, float pct)
-{
+inline __m128d DFloat::percentile_packed(int start_col, float pct) {
   if (pct == 1.0) return pack(start_col, rows - 1);
   double rank = pct * (double)(rows - 1);
   int floored_rank = floor(rank);
@@ -140,9 +118,7 @@ DFloat::percentile_packed(int start_col, float pct)
   return _mm_add_pd(lower, _mm_mul_pd(upper_minus_lower, rank_minus_floored_rank));
 }
 
-Stats*
-DFloat::descriptive_statistics_packed()
-{
+Stats *DFloat::descriptive_statistics_packed() {
   stats = new Stats[cols];
   if (!data_initialized) return stats;
   const int simd_pack_size = 2;
