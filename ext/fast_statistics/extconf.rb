@@ -1,15 +1,14 @@
 require "mkmf"
 
 class MkmfConfig
-  attr_reader :extension_name, :debug, :disable_instrinsics
+  attr_reader :extension_name, :debug, :disable_simd
 
-  def initialize(extension_name:, debug:, disable_instrinsics:)
+  def initialize(extension_name:, debug:, disable_simd:)
     @extension_name = extension_name
     @debug = debug
-    @disable_instrinsics = disable_instrinsics
+    @disable_simd = disable_simd
   end
 
-  # Enable debug compile using DEBUG env var
   def configure_debugging
     if debug
       puts "Compiling in debug mode..."
@@ -35,7 +34,7 @@ class MkmfConfig
   end
 
   def configure_headers
-    return if disable_instrinsics
+    return if disable_simd
     have_header("xmmintrin.h")
   end
 
@@ -56,5 +55,5 @@ end
 MkmfConfig.new(
   extension_name: "fast_statistics/fast_statistics",
   debug: ENV["DEBUG"],
-  disable_instrinsics: ENV["DISABLE_INTRINSICS"]
+  disable_simd: ENV["DISABLE_SIMD"]
 ).configure

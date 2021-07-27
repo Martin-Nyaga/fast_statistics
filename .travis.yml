@@ -5,4 +5,4 @@ rvm:
   - 2.7
 env:
   - ""
-  - DISABLE_INTRINSICS=1
+  - DISABLE_SIMD=1
