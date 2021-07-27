@@ -78,17 +78,20 @@ VALUE build_results_hashes(Stats *stats, int num_variables) {
   return a_results;
 }
 
+/*
+ * def descriptive_statistics
+ */
+VALUE descriptive_statistics(VALUE self) {
+  GET_DFLOAT(self, dfloat);
+  Stats *stats = dfloat->descriptive_statistics();
+  return ::array_2d::build_results_hashes(stats, dfloat->cols);
+}
+
 void setup(VALUE rb_m_fast_statistics) {
   rb_c_array_2d = rb_define_class_under(rb_m_fast_statistics, "Array2D", rb_cData);
   rb_define_alloc_func(rb_c_array_2d, rb_alloc);
   rb_define_method(rb_c_array_2d, "initialize", RUBY_METHOD_FUNC(rb_initialize), 1);
-
-#ifdef HAVE_XMMINTRIN_H
   rb_define_method(
-      rb_c_array_2d, "descriptive_statistics", RUBY_METHOD_FUNC(packed::descriptive_statistics), 0);
-#else
-  rb_define_method(
-      cArray2D, "descriptive_statistics", RUBY_METHOD_FUNC(unpacked::descriptive_statistics), 0);
-#endif
+      rb_c_array_2d, "descriptive_statistics", RUBY_METHOD_FUNC(descriptive_statistics), 0);
 }
 } // namespace array_2d

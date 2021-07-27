@@ -3,8 +3,6 @@
 
 #include <ruby.h>
 
-#include "array_2d/packed.h"
-#include "array_2d/unpacked.h"
 #include "dfloat.h"
 #include "utils.h"
 

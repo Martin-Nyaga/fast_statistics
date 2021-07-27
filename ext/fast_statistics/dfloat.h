@@ -25,15 +25,16 @@ struct Stats {
 class DFloat {
   inline double *base_ptr(int col) { return entries + (col * rows); }
   inline void sort(double *col);
-  inline double percentile(double *col, double pct);
-  inline double sum(double *col);
-  inline double standard_deviation(double *col, double mean);
 
 #ifdef HAVE_XMMINTRIN_H
   inline double safe_entry(int col, int row);
   inline void sort_columns(int start_col, int pack_size);
   inline __m128d percentile_packed(int start_col, float pct);
   inline __m128d pack(int start_col, int row);
+#else
+  inline double percentile(double *col, double pct);
+  inline double sum(double *col);
+  inline double standard_deviation(double *col, double mean);
 #endif
 
 public:
@@ -47,9 +48,5 @@ public:
   ~DFloat();
 
   Stats *descriptive_statistics();
-
-#ifdef HAVE_XMMINTRIN_H
-  Stats *descriptive_statistics_packed();
-#endif
 };
 #endif
