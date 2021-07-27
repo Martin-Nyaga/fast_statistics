@@ -36,6 +36,11 @@ describe FastStatistics::Array2D do
       stats = subject.descriptive_statistics
       expect(stats).to have_same_statistics_values_as(expected_stats)
     end
+
+    it "#mean works" do
+      means = subject.mean
+      expect(means).to eq(expected_stats.map { _1[:mean] })
+    end
   end
 
   context "with 1 variable" do

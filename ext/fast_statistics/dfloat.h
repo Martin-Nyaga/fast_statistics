@@ -25,6 +25,7 @@ struct Stats {
 class DFloat {
   inline double *base_ptr(int col) { return entries + (col * rows); }
   inline void sort(double *col);
+  inline double sum(double *col);
 
 #ifdef HAVE_XMMINTRIN_H
   inline double safe_entry(int col, int row);
@@ -33,7 +34,6 @@ class DFloat {
   inline __m128d pack(int start_col, int row);
 #else
   inline double percentile(double *col, double pct);
-  inline double sum(double *col);
   inline double standard_deviation(double *col, double mean);
 #endif
 
@@ -43,10 +43,12 @@ public:
   bool data_initialized;
   double *entries;
   Stats *stats;
+  double *means;
 
   DFloat(VALUE ruby_arr, bool initialize_data);
   ~DFloat();
 
   Stats *descriptive_statistics();
+  double *mean();
 };
 #endif

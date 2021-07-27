@@ -81,10 +81,24 @@ VALUE build_results_hashes(Stats *stats, int num_variables) {
 /*
  * def descriptive_statistics
  */
-VALUE descriptive_statistics(VALUE self) {
+VALUE rb_descriptive_statistics(VALUE self) {
   GET_DFLOAT(self, dfloat);
   Stats *stats = dfloat->descriptive_statistics();
-  return ::array_2d::build_results_hashes(stats, dfloat->cols);
+  return build_results_hashes(stats, dfloat->cols);
+}
+
+VALUE to_ruby_array(double *c_array, int count) {
+  VALUE ruby_array = rb_ary_new();
+  for (auto i = 0; i < count; i++) {
+    rb_ary_push(ruby_array, DBL2NUM(c_array[i]));
+  }
+  return ruby_array;
+}
+
+VALUE rb_mean(VALUE self) {
+  GET_DFLOAT(self, dfloat);
+  double *means = dfloat->mean();
+  return to_ruby_array(means, dfloat->cols);
 }
 
 void setup(VALUE rb_m_fast_statistics) {
@@ -92,6 +106,7 @@ void setup(VALUE rb_m_fast_statistics) {
   rb_define_alloc_func(rb_c_array_2d, rb_alloc);
   rb_define_method(rb_c_array_2d, "initialize", RUBY_METHOD_FUNC(rb_initialize), 1);
   rb_define_method(
-      rb_c_array_2d, "descriptive_statistics", RUBY_METHOD_FUNC(descriptive_statistics), 0);
+      rb_c_array_2d, "descriptive_statistics", RUBY_METHOD_FUNC(rb_descriptive_statistics), 0);
+  rb_define_method(rb_c_array_2d, "mean", RUBY_METHOD_FUNC(rb_mean), 0);
 }
 } // namespace array_2d

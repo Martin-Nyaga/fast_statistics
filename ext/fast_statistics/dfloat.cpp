@@ -4,6 +4,7 @@ DFloat::~DFloat() {
   if (data_initialized) {
     free(entries);
     delete[] stats;
+    delete[] means;
   }
 }
 
@@ -14,7 +15,9 @@ DFloat::DFloat(VALUE arrays, bool initialize_data) {
     cols = rb_array_len(arrays);
     rows = rb_array_len(rb_ary_entry(arrays, 0));
     entries = (double *)malloc(cols * rows * sizeof(double));
+
     stats = new Stats[cols];
+    means = new double[cols];
 
     for (int j = 0; j < cols; j++) {
       for (int i = 0; i < rows; i++) {
@@ -25,11 +28,31 @@ DFloat::DFloat(VALUE arrays, bool initialize_data) {
     cols = 0;
     rows = 0;
     entries = NULL;
+
     stats = NULL;
+    means = NULL;
   }
 }
 
 inline void DFloat::sort(double *col) { std::sort(col, col + rows); }
+
+inline double DFloat::sum(double *col) {
+  double sum = 0.0;
+  for (int row = 0; row < rows; row++) {
+    sum += col[row];
+  }
+  return sum;
+}
+
+double *DFloat::mean() {
+  for (int col = 0; col < cols; col++) {
+    double *col_arr = base_ptr(col);
+    double total = sum(col_arr);
+    double mean = total / rows;
+    means[col] = mean;
+  }
+  return means;
+}
 
 #ifdef HAVE_XMMINTRIN_H
 inline double DFloat::safe_entry(int col, int row) {
@@ -66,8 +89,6 @@ inline __m128d DFloat::percentile_packed(int start_col, float pct) {
 }
 
 Stats *DFloat::descriptive_statistics() {
-  stats = new Stats[cols];
-  if (!data_initialized) return stats;
   const int simd_pack_size = 2;
 
   __m128d lengths = _mm_set_pd1((double)rows);
@@ -81,7 +102,7 @@ Stats *DFloat::descriptive_statistics() {
       __m128d packed = pack(col, row_index);
       sums = _mm_add_pd(sums, packed);
     }
-    __m128d means = _mm_div_pd(sums, lengths);
+    __m128d packed_means = _mm_div_pd(sums, lengths);
 
     __m128d medians = percentile_packed(col, 0.5f);
     __m128d q1s = percentile_packed(col, 0.25f);
@@ -90,7 +111,7 @@ Stats *DFloat::descriptive_statistics() {
     __m128d variances = _mm_setzero_pd();
     for (int row_index = 0; row_index < rows; row_index++) {
       __m128d packed = pack(col, row_index);
-      __m128d deviation = _mm_sub_pd(packed, means);
+      __m128d deviation = _mm_sub_pd(packed, packed_means);
       __m128d sqr_deviation = _mm_mul_pd(deviation, deviation);
       variances = _mm_add_pd(variances, _mm_div_pd(sqr_deviation, lengths));
     }
@@ -101,7 +122,7 @@ Stats *DFloat::descriptive_statistics() {
         Stats var_stats;
         var_stats.min = MM_GET_INDEX(mins, simd_slot_index);
         var_stats.max = MM_GET_INDEX(maxes, simd_slot_index);
-        var_stats.mean = MM_GET_INDEX(means, simd_slot_index);
+        var_stats.mean = MM_GET_INDEX(packed_means, simd_slot_index);
         var_stats.median = MM_GET_INDEX(medians, simd_slot_index);
         var_stats.q1 = MM_GET_INDEX(q1s, simd_slot_index);
         var_stats.q3 = MM_GET_INDEX(q3s, simd_slot_index);
@@ -125,14 +146,6 @@ inline double DFloat::percentile(double *col, double pct) {
   return lower + (upper - lower) * (rank - floored_rank);
 }
 
-inline double DFloat::sum(double *col) {
-  double sum = 0.0;
-  for (int row = 0; row < rows; row++) {
-    sum += col[row];
-  }
-  return sum;
-}
-
 inline double DFloat::standard_deviation(double *col, double mean) {
   double variance = 0.0f;
   for (int i = 0; i < rows; i++) {
@@ -146,8 +159,6 @@ inline double DFloat::standard_deviation(double *col, double mean) {
 }
 
 Stats *DFloat::descriptive_statistics() {
-  if (!data_initialized) return stats;
-
   for (int col = 0; col < cols; col++) {
     Stats var_stats;
     double *col_arr = base_ptr(col);
