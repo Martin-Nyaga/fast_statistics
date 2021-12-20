@@ -4,8 +4,14 @@
 #include "ruby.h"
 
 #ifdef HAVE_XMMINTRIN_H
-#include <xmmintrin.h>
-#define MM_GET_INDEX(packed, index) *(((double*)&packed) + index);
+
+  #ifdef __x86_64__
+     #include <xmmintrin.h>
+  #else
+    #include "sse2neon.h"
+  #endif
+
+  #define MM_GET_INDEX(packed, index) *(((double*)&packed) + index);
 #endif
 
 namespace array_2d
