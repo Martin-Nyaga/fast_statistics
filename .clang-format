@@ -1,9 +1,7 @@
 ---
-BasedOnStyle: Mozilla
+BasedOnStyle: LLVM
 ColumnLimit: 100
 TabWidth: 2
 UseTab: Never
-BreakBeforeBraces: Linux
 AllowShortIfStatementsOnASingleLine: true
 AlignAfterOpenBracket: AlwaysBreak
-AllowAllArgumentsOnNextLine: true

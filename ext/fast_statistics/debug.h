@@ -2,20 +2,20 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#include <x86intrin.h>
 #include <stdio.h>
 #include <string.h>
+#include <x86intrin.h>
 
 #define CONCAT_(a, b) a##b
-#define CONCAT(a,b) CONCAT_(a, b)
+#define CONCAT(a, b) CONCAT_(a, b)
 #define PROFILE DebugTimer CONCAT(Timer, __COUNTER__)(__func__, __LINE__);
 
 struct DebugTimer {
-  char* name;
+  char *name;
   unsigned long long counter;
-  
-  DebugTimer(const char* function_name, int line_number) {
-    name = (char*)malloc(200 * sizeof(char));
+
+  DebugTimer(const char *function_name, int line_number) {
+    name = (char *)malloc(200 * sizeof(char));
 
     strcpy(name, function_name);
     strcat(name, "_");
@@ -32,5 +32,5 @@ struct DebugTimer {
 };
 #endif
 #else
-#define PROFILE();
+#define PROFILE() ;
 #endif

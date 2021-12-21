@@ -1,200 +1,97 @@
 #include "array_2d.h"
-#include "debug.h"
 
-namespace array_2d
-{
+namespace array_2d {
 
-DFloat::~DFloat()
-{
-  if (data_initialized) {
-    free(entries);
-    delete[] stats;
-  }
+static VALUE rb_c_array_2d;
+
+void free_wrapped_array(void *dfloat) {
+  ((DFloat *)dfloat)->~DFloat();
+  free(dfloat);
 }
 
-DFloat::DFloat(VALUE arrays, bool initialize_data)
-{
-  data_initialized = initialize_data;
+size_t wrapped_array_size(const void *data) { return sizeof(DFloat); }
 
-  if (initialize_data) {
-    cols = rb_array_len(arrays);
-    rows = rb_array_len(rb_ary_entry(arrays, 0));
-    entries = (double*)malloc(cols * rows * sizeof(double));
-    stats = new Stats[cols];
+const rb_data_type_t dfloat_wrapper = [] {
+  rb_data_type_t wrapper;
+  wrapper.wrap_struct_name = "dfloat";
+  wrapper.function = {.dmark = NULL, .dfree = free_wrapped_array, .dsize = wrapped_array_size};
+  wrapper.data = NULL;
+  wrapper.flags = RUBY_TYPED_FREE_IMMEDIATELY;
+  return wrapper;
+}();
 
-    for (int j = 0; j < cols; j++) {
-      for (int i = 0; i < rows; i++) {
-        entries[j * rows + i] = (double)NUM2DBL(rb_ary_entry(rb_ary_entry(arrays, j), i));
-      }
-    }
-  } else {
-    cols = 0;
-    rows = 0;
-    entries = NULL;
-    stats = NULL;
-  }
+VALUE rb_alloc(VALUE self) {
+  void *dfloat = (void *)malloc(sizeof(DFloat));
+  return TypedData_Wrap_Struct(self, &dfloat_wrapper, dfloat);
 }
 
-inline void
-DFloat::sort(double* col)
-{
-  std::sort(col, col + rows);
-}
+/*
+ * def initialize(arrays)
+ */
+VALUE rb_initialize(VALUE self, VALUE arrays) {
+  // Get untyped memory for a dfloat
+  GET_DFLOAT_UNTYPED(self, dfloat);
 
-inline double
-DFloat::percentile(double* col, double pct)
-{
-  if (pct == 1.0) return col[rows - 1];
-  double rank = pct * (double)(rows - 1);
-  int floored_rank = floor(rank);
-  double lower = col[floored_rank];
-  double upper = col[floored_rank + 1];
-  return lower + (upper - lower) * (rank - floored_rank);
-}
-
-inline double
-DFloat::sum(double* col)
-{
-  double sum = 0.0;
-  for (int row = 0; row < rows; row++) {
-    sum += col[row];
-  }
-  return sum;
-}
-
-inline double
-DFloat::standard_deviation(double* col, double mean)
-{
-  double variance = 0.0f;
-  for (int i = 0; i < rows; i++) {
-    double value = col[i];
-    double deviation = value - mean;
-    double sqr_deviation = deviation * deviation;
-    variance += (sqr_deviation / (double)rows);
-  }
-  double result = sqrt(variance);
-  return result;
-}
-
-Stats*
-DFloat::descriptive_statistics()
-{
-  if (!data_initialized) return stats;
-
-  for (int col = 0; col < cols; col++) {
-    Stats var_stats;
-    double* col_arr = base_ptr(col);
-
-    sort(col_arr);
-
-    var_stats.min = col_arr[0];
-    var_stats.max = col_arr[rows - 1];
-    var_stats.median = percentile(col_arr, 0.5);
-    var_stats.q1 = percentile(col_arr, 0.25);
-    var_stats.q3 = percentile(col_arr, 0.75);
-    double total = sum(col_arr);
-    var_stats.mean = total / (double)rows;
-    var_stats.standard_deviation = standard_deviation(col_arr, var_stats.mean);
-
-    stats[col] = var_stats;
+  // Type-check 2D array
+  if (TYPE(arrays) != T_ARRAY) {
+    new (dfloat) DFloat(arrays, false);
+    Check_Type(arrays, T_ARRAY);
+    return false;
   }
 
-  return stats;
-}
-
-#ifdef HAVE_XMMINTRIN_H
-inline double
-DFloat::safe_entry(int col, int row)
-{
-  if (col < cols) {
-    return *(base_ptr(col) + row);
-  } else {
-    return 0;
-  }
-}
-
-inline void
-DFloat::sort_columns(int start_col, int pack_size)
-{
-  for (int i = 0; i < pack_size; i++) {
-    if ((start_col + i) < cols) {
-      double* col_arr = base_ptr(start_col + i);
-      sort(col_arr);
-    }
-  }
-}
-
-inline __m128d
-DFloat::pack(int start_col, int row)
-{
-  __m128d packed = _mm_set_pd(safe_entry(start_col + 1, row), safe_entry(start_col + 0, row));
-  return packed;
-}
-
-inline __m128d
-DFloat::percentile_packed(int start_col, float pct)
-{
-  if (pct == 1.0) return pack(start_col, rows - 1);
-  double rank = pct * (double)(rows - 1);
-  int floored_rank = floor(rank);
-  __m128d lower = pack(start_col, floored_rank);
-  __m128d upper = pack(start_col, floored_rank + 1);
-  __m128d upper_minus_lower = _mm_sub_pd(upper, lower);
-  __m128d rank_minus_floored_rank = _mm_sub_pd(_mm_set_pd1(rank), _mm_set_pd1((float)floored_rank));
-  return _mm_add_pd(lower, _mm_mul_pd(upper_minus_lower, rank_minus_floored_rank));
-}
-
-Stats*
-DFloat::descriptive_statistics_packed()
-{
-  stats = new Stats[cols];
-  if (!data_initialized) return stats;
-  const int simd_pack_size = 2;
-
-  __m128d lengths = _mm_set_pd1((double)rows);
-  for (int col = 0; col < cols; col += simd_pack_size) {
-    sort_columns(col, simd_pack_size);
-
-    __m128d mins = pack(col, 0);
-    __m128d maxes = pack(col, rows - 1);
-    __m128d sums = _mm_setzero_pd();
-    for (int row_index = 0; row_index < rows; row_index++) {
-      __m128d packed = pack(col, row_index);
-      sums = _mm_add_pd(sums, packed);
-    }
-    __m128d means = _mm_div_pd(sums, lengths);
-
-    __m128d medians = percentile_packed(col, 0.5f);
-    __m128d q1s = percentile_packed(col, 0.25f);
-    __m128d q3s = percentile_packed(col, 0.75f);
-
-    __m128d variances = _mm_setzero_pd();
-    for (int row_index = 0; row_index < rows; row_index++) {
-      __m128d packed = pack(col, row_index);
-      __m128d deviation = _mm_sub_pd(packed, means);
-      __m128d sqr_deviation = _mm_mul_pd(deviation, deviation);
-      variances = _mm_add_pd(variances, _mm_div_pd(sqr_deviation, lengths));
-    }
-    __m128d stdevs = _mm_sqrt_pd(variances);
-
-    for (int simd_slot_index = 0; simd_slot_index < simd_pack_size; simd_slot_index++) {
-      if ((col + simd_slot_index) < cols) {
-        Stats var_stats;
-        var_stats.min = MM_GET_INDEX(mins, simd_slot_index);
-        var_stats.max = MM_GET_INDEX(maxes, simd_slot_index);
-        var_stats.mean = MM_GET_INDEX(means, simd_slot_index);
-        var_stats.median = MM_GET_INDEX(medians, simd_slot_index);
-        var_stats.q1 = MM_GET_INDEX(q1s, simd_slot_index);
-        var_stats.q3 = MM_GET_INDEX(q3s, simd_slot_index);
-        var_stats.standard_deviation = MM_GET_INDEX(stdevs, simd_slot_index);
-
-        stats[col + simd_slot_index] = var_stats;
-      }
-    }
+  if (TYPE(rb_ary_entry(arrays, 0)) != T_ARRAY) {
+    new (dfloat) DFloat(arrays, false);
+    Check_Type(rb_ary_entry(arrays, 0), T_ARRAY);
+    return false;
   }
 
-  return stats;
+  new (dfloat) DFloat(arrays, true);
+  return self;
 }
 
-#endif
+VALUE build_results_hashes(Stats *stats, int num_variables) {
+  VALUE a_results = rb_ary_new();
+
+  VALUE s_min = rb_sym("min");
+  VALUE s_max = rb_sym("max");
+  VALUE s_mean = rb_sym("mean");
+  VALUE s_median = rb_sym("median");
+  VALUE s_q1 = rb_sym("q1");
+  VALUE s_q3 = rb_sym("q3");
+  VALUE s_standard_deviation = rb_sym("standard_deviation");
+
+  for (int i = 0; i < num_variables; i++) {
+    VALUE h_result = rb_hash_new();
+    Stats var_stats = stats[i];
+
+    rb_hash_aset(h_result, s_min, DBL2NUM(var_stats.min));
+    rb_hash_aset(h_result, s_max, DBL2NUM(var_stats.max));
+    rb_hash_aset(h_result, s_mean, DBL2NUM(var_stats.mean));
+    rb_hash_aset(h_result, s_median, DBL2NUM(var_stats.median));
+    rb_hash_aset(h_result, s_q1, DBL2NUM(var_stats.q1));
+    rb_hash_aset(h_result, s_q3, DBL2NUM(var_stats.q3));
+    rb_hash_aset(h_result, s_standard_deviation, DBL2NUM(var_stats.standard_deviation));
+
+    rb_ary_push(a_results, h_result);
+  }
+
+  return a_results;
+}
+
+/*
+ * def descriptive_statistics
+ */
+VALUE descriptive_statistics(VALUE self) {
+  GET_DFLOAT(self, dfloat);
+  Stats *stats = dfloat->descriptive_statistics();
+  return ::array_2d::build_results_hashes(stats, dfloat->cols);
+}
+
+void setup(VALUE rb_m_fast_statistics) {
+  rb_c_array_2d = rb_define_class_under(rb_m_fast_statistics, "Array2D", rb_cData);
+  rb_define_alloc_func(rb_c_array_2d, rb_alloc);
+  rb_define_method(rb_c_array_2d, "initialize", RUBY_METHOD_FUNC(rb_initialize), 1);
+  rb_define_method(
+      rb_c_array_2d, "descriptive_statistics", RUBY_METHOD_FUNC(descriptive_statistics), 0);
+}
 } // namespace array_2d
