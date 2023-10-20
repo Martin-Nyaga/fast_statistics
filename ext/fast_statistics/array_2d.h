@@ -4,8 +4,14 @@
 #include "ruby.h"
 
 #ifdef HAVE_XMMINTRIN_H
-#include <xmmintrin.h>
-#define MM_GET_INDEX(packed, index) *(((double*)&packed) + index);
+
+  #ifdef __x86_64__
+     #include <xmmintrin.h>
+  #else
+    #include "sse2neon.h"
+  #endif
+
+  #define MM_GET_INDEX(packed, index) *(((double*)&packed) + index);
 #endif
 
 namespace array_2d
@@ -19,10 +25,11 @@ struct Stats {
   double q1;
   double q3;
   double standard_deviation;
+  double skew_median_pearson;
 
   Stats()
   {
-    min = 0.0, max = 0.0, mean = 0.0, median = 0.0, q1 = 0.0, q3 = 0.0, standard_deviation = 0.0;
+    min = 0.0, max = 0.0, mean = 0.0, median = 0.0, q1 = 0.0, q3 = 0.0, standard_deviation = 0.0, skew_median_pearson = 0.0;
   };
 };
 

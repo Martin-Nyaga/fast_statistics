@@ -3,7 +3,11 @@
 
 #include <ruby.h>
 #ifdef HAVE_XMMINTRIN_H
-#include <xmmintrin.h>
+  #ifdef __x86_64__
+     #include <xmmintrin.h>
+  #else
+    #include "sse2neon.h"
+  #endif
 #endif
 
 #include "debug.h"
