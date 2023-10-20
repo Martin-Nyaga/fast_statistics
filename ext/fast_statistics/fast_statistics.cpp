@@ -152,7 +152,7 @@ extern "C" void
 Init_fast_statistics(void)
 {
   mFastStatistics = rb_define_module("FastStatistics");
-  cArray2D = rb_define_class_under(mFastStatistics, "Array2D", rb_cData);
+  cArray2D = rb_define_class_under(mFastStatistics, "Array2D", rb_cObject);
   rb_define_alloc_func(cArray2D, cArray2D_alloc);
   rb_define_method(cArray2D, "initialize", RUBY_METHOD_FUNC(cArray2D_initialize), 1);
 
